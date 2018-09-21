@@ -1,0 +1,200 @@
+ tensorflow/contrib/cmake/CMakeLists.txt               | 12 ++++++------
+ tensorflow/contrib/cmake/external/farmhash.cmake      |  7 +++++++
+ tensorflow/contrib/cmake/external/grpc.cmake          |  2 ++
+ tensorflow/contrib/cmake/external/nsync.cmake         | 14 ++++++++++++++
+ tensorflow/contrib/cmake/external/png.cmake           |  2 ++
+ tensorflow/contrib/cmake/patches/gif/CMakeLists.txt   | 10 +++++-----
+ tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt  | 10 +++++-----
+ tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt  | 10 +++++-----
+ tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt | 12 ++++++------
+ 9 files changed, 52 insertions(+), 27 deletions(-)
+
+diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
+index a0a5b0e..98ace3b 100644
+--- a/tensorflow/contrib/cmake/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/CMakeLists.txt
+@@ -149,17 +149,17 @@ if(WIN32)
+   add_definitions(-DWIN32 -DOS_WIN -D_MBCS -DWIN32_LEAN_AND_MEAN -DNOGDI -DPLATFORM_WINDOWS)
+   add_definitions(-DTENSORFLOW_USE_EIGEN_THREADPOOL -DEIGEN_HAS_C99_MATH)
+   add_definitions(-DTF_COMPILE_LIBRARY)
+-  add_definitions(/bigobj /nologo /EHsc /GF /MP /Gm-)
++  # add_definitions(/bigobj /nologo /EHsc /GF /MP /Gm-)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+   # Suppress linker warnings.
+   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
+   set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
+   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
+-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
++  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+   set(CMAKE_CXX_FLAGS_DEBUG "/D_DEBUG /MDd /Ob2")
+   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /D_ITERATOR_DEBUG_LEVEL=0")
+   set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /D_ITERATOR_DEBUG_LEVEL=0")
+diff --git a/tensorflow/contrib/cmake/external/farmhash.cmake b/tensorflow/contrib/cmake/external/farmhash.cmake
+index d51569b..254ba27 100644
+--- a/tensorflow/contrib/cmake/external/farmhash.cmake
++++ b/tensorflow/contrib/cmake/external/farmhash.cmake
+@@ -59,6 +59,13 @@ else()
+ 
+ endif()
+ 
++ExternalProject_Add_Step(farmhash "copy_MinGW-endian.h"
++    COMMAND ${CMAKE_COMMAND} -E copy
++    ${CMAKE_SOURCE_DIR}/patches/farmhash/MinGW-endian.h ${farmhash_BUILD}/endian.h
++    DEPENDEES patch
++    DEPENDERS build
++)
++
+ # put farmhash includes in the directory where they are expected
+ add_custom_target(farmhash_create_destination_dir
+     COMMAND ${CMAKE_COMMAND} -E make_directory ${farmhash_INCLUDE_DIR}
+diff --git a/tensorflow/contrib/cmake/external/grpc.cmake b/tensorflow/contrib/cmake/external/grpc.cmake
+index b1e64aa..6509b75 100644
+--- a/tensorflow/contrib/cmake/external/grpc.cmake
++++ b/tensorflow/contrib/cmake/external/grpc.cmake
+@@ -57,6 +57,8 @@ ExternalProject_Add(grpc
+     DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+     BUILD_IN_SOURCE 1
+     BUILD_BYPRODUCTS ${grpc_STATIC_LIBRARIES}
++    PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different
++        ${CMAKE_CURRENT_SOURCE_DIR}/patches/grpc/CMakeLists.txt ${GRPC_BUILD}
+     BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release --target ${grpc_TARGET}
+     COMMAND ${CMAKE_COMMAND} --build . --config Release --target grpc_cpp_plugin
+     INSTALL_COMMAND ""
+diff --git a/tensorflow/contrib/cmake/external/nsync.cmake b/tensorflow/contrib/cmake/external/nsync.cmake
+index eba3bcf..1bb4621 100644
+--- a/tensorflow/contrib/cmake/external/nsync.cmake
++++ b/tensorflow/contrib/cmake/external/nsync.cmake
+@@ -51,5 +51,19 @@ ExternalProject_Add(nsync
+         -DCMAKE_INSTALL_PREFIX:STRING=${nsync_INSTALL}
+ 	-DNSYNC_LANGUAGE:STRING=c++11)
+ 
++ExternalProject_Add_Step(nsync "copy_platform-win32-platform_c++11_os.h"
++    COMMAND ${CMAKE_COMMAND} -E copy
++    ${CMAKE_SOURCE_DIR}/patches/nsync/platform-win32-platform_c++11_os.h ${nsync_BUILD}/platform/win32/platform_c++11_os.h
++    DEPENDEES patch
++    DEPENDERS build
++)
++
++ExternalProject_Add_Step(nsync "copy_platform-win32-src-pthread_key_win32.cc"
++    COMMAND ${CMAKE_COMMAND} -E copy
++    ${CMAKE_SOURCE_DIR}/patches/nsync/platform-win32-src-pthread_key_win32.cc ${nsync_BUILD}/platform/win32/src/pthread_key_win32.cc
++    DEPENDEES patch
++    DEPENDERS build
++)
++
+ add_custom_command(TARGET nsync_copy_headers_to_destination PRE_BUILD
+     COMMAND ${CMAKE_COMMAND} -E copy_directory ${nsync_INSTALL}/include/ ${nsync_INCLUDE_DIR}/)
+diff --git a/tensorflow/contrib/cmake/external/png.cmake b/tensorflow/contrib/cmake/external/png.cmake
+index ad2af01..53c6672 100644
+--- a/tensorflow/contrib/cmake/external/png.cmake
++++ b/tensorflow/contrib/cmake/external/png.cmake
+@@ -50,6 +50,8 @@ ExternalProject_Add(png
+     URL ${png_URL}
+     URL_HASH ${png_HASH}
+     BUILD_BYPRODUCTS ${png_STATIC_LIBRARIES}
++    PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different
++        ${CMAKE_CURRENT_SOURCE_DIR}/patches/png/CMakeLists.txt ${png_BUILD}
+     INSTALL_DIR ${png_INSTALL}
+     DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+     CMAKE_CACHE_ARGS
+diff --git a/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt b/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt
+index e19df93..d985642 100644
+--- a/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt
+@@ -21,11 +21,11 @@ set(GIFLIB_INCLUDES
+ 
+ if (WIN32)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+-  add_definitions(/wd8029)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd8029)
+ endif()
+ 
+ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib")
+diff --git a/tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt b/tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt
+index 0baea99..3e939c9 100644
+--- a/tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt
+@@ -64,11 +64,11 @@ set(LIBJPEG_INCLUDES
+ 
+ if (WIN32)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+-  add_definitions(/wd8029)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd8029)
+ endif()
+ 
+ include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
+diff --git a/tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt b/tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt
+index 2167b43..58ea36e 100644
+--- a/tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt
+@@ -14,11 +14,11 @@ set(LIBLMDB_INCLUDES
+ 
+ if (WIN32)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+-  add_definitions(/wd8029)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd8029)
+ endif()
+ 
+ include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
+diff --git a/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt b/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt
+index 6f059c7..781a6bd 100644
+--- a/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt
+@@ -23,11 +23,11 @@ set (NSYNC_POSIX_SRC
+ 
+ if (WIN32)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+-  add_definitions(/wd8029)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd8029)
+ endif()
+ 
+ # Many of the string matches below use a literal "X" suffix on both sides.
+@@ -49,7 +49,7 @@ if ("${NSYNC_LANGUAGE}X" STREQUAL "c++11X")
+   )
+   if ("${CMAKE_SYSTEM_NAME}X" STREQUAL "WindowsX")
+     include_directories ("${PROJECT_SOURCE_DIR}/platform/win32")
+-    add_compile_options ("/TP")
++    # add_compile_options ("/TP")
+     set (NSYNC_OS_SRC
+       "platform/c++11/src/nsync_semaphore_mutex.cc"
+       "platform/win32/src/clock_gettime.c"

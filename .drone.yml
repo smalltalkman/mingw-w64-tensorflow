@@ -1,0 +1,12 @@
+build:
+  image: teaci/msys$$arch
+  shell: mingw$$arch
+  pull: true
+  commands:
+    - pwd
+    - makepkg
+
+matrix:
+  arch:
+    - 32
+    - 64
