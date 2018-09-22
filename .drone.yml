@@ -4,6 +4,9 @@ build:
   pull: true
   commands:
     - pwd
+    - repman add ci.msys 'https://dl.bintray.com/alexpux/msys2' || exit 1
+    - pacman --noconfirm --noprogressbar --sync --refresh --refresh --sysupgrade --sysupgrade || exit 1
+    - pacman --noconfirm --needed --noprogressbar --sync ci.msys/pactoys
     - makepkg --syncdeps --noconfirm --noprogressbar
 
 matrix:
