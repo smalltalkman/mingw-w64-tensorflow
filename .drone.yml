@@ -4,7 +4,7 @@ build:
   pull: true
   commands:
     - pwd
-    - makepkg
+    - makepkg -s
 
 matrix:
   arch:
