@@ -25,7 +25,7 @@ sha256sums=('EE9CB98D9E0D8106F2F4ED52A38FE89399324AF303E1401567E5B64A9F86744B'
 
 arch=('any')
 depends=()
-makedepends=()
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake")
 
 prepare() {
   cd "${srcdir}/tensorflow-${pkgver}"
