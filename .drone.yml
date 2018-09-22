@@ -4,7 +4,7 @@ build:
   pull: true
   commands:
     - pwd
-    - makepkg -sy
+    - makepkg --syncdeps --noconfirm --noprogressbar
 
 matrix:
   arch:
