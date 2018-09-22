@@ -6,7 +6,7 @@ build:
     - pwd
     - repman add ci.msys 'https://dl.bintray.com/alexpux/msys2' || exit 1
     - pacman --noconfirm --noprogressbar --sync --refresh --refresh --sysupgrade --sysupgrade || exit 1
-    - pacman --noconfirm --needed --noprogressbar --sync ci.msys/pactoys
+    - pacman --noconfirm --needed --noprogressbar --sync ci.msys/pactoys || exit 1
     - makepkg --syncdeps --noconfirm --noprogressbar
 
 matrix:
