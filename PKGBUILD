@@ -21,7 +21,7 @@ sha256sums=('EE9CB98D9E0D8106F2F4ED52A38FE89399324AF303E1401567E5B64A9F86744B'
             '8D307EE52BE3A6453D124C3601453268EC1AF76A92B9D95B9576776BC46E6456'
             '37FB53852796A9DF3BFE12897333B9DB28FFAC3C59A3B3762943C6AF62E94332'
             '8C8858AD675D5D69520166265751F2EAAD48EA0EB36BE299F4743389E879FAD9'
-            '87856D1C91367FD99407E50327B98900F816DF983B669C192D2E9E6334637AD3')
+            '1807224D4D1CB3BDBAF6B4548C153F17F428360893A2A0304A9B74B649F86B9E')
 
 arch=('any')
 depends=()
@@ -29,11 +29,11 @@ makedepends=("${MINGW_PACKAGE_PREFIX}-swig")
 
 prepare() {
   cd "${srcdir}/tensorflow-${pkgver}"
-  if [ ! -d .git ]; then
-    git init
-    git add .
-    git commit -m "first commit"
-  fi
+  # if [ ! -d .git ]; then
+  #   git init
+  #   git add .
+  #   git commit -m "first commit"
+  # fi
   mkdir -p tensorflow/contrib/cmake/patches/nsync
   cp -ubS.orig -p         ${srcdir}/patches-nsync-platform-win32-platform_c++11_os.h \
            tensorflow/contrib/cmake/patches/nsync/platform-win32-platform_c++11_os.h

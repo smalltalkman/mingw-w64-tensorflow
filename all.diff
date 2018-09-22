@@ -1,19 +1,43 @@
- tensorflow/contrib/cmake/CMakeLists.txt               | 12 ++++++------
- tensorflow/contrib/cmake/external/farmhash.cmake      |  7 +++++++
- tensorflow/contrib/cmake/external/grpc.cmake          |  2 ++
- tensorflow/contrib/cmake/external/nsync.cmake         | 14 ++++++++++++++
- tensorflow/contrib/cmake/external/png.cmake           |  2 ++
- tensorflow/contrib/cmake/patches/gif/CMakeLists.txt   | 10 +++++-----
- tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt  | 10 +++++-----
- tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt  | 10 +++++-----
- tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt | 12 ++++++------
- 9 files changed, 52 insertions(+), 27 deletions(-)
+ tensorflow/contrib/cmake/CMakeLists.txt             | 17 ++++++++++-------
+ .../contrib/cmake/external/double_conversion.cmake  |  7 ++++++-
+ tensorflow/contrib/cmake/external/farmhash.cmake    | 14 +++++++++++++-
+ tensorflow/contrib/cmake/external/fft2d.cmake       |  7 ++++++-
+ tensorflow/contrib/cmake/external/gif.cmake         |  7 ++++++-
+ tensorflow/contrib/cmake/external/grpc.cmake        |  7 +++++++
+ tensorflow/contrib/cmake/external/highwayhash.cmake |  7 ++++++-
+ tensorflow/contrib/cmake/external/jpeg.cmake        |  7 ++++++-
+ tensorflow/contrib/cmake/external/jsoncpp.cmake     |  2 ++
+ tensorflow/contrib/cmake/external/lmdb.cmake        |  7 ++++++-
+ tensorflow/contrib/cmake/external/nsync.cmake       | 21 ++++++++++++++++++++-
+ tensorflow/contrib/cmake/external/png.cmake         | 10 ++++++++++
+ tensorflow/contrib/cmake/external/protobuf.cmake    |  9 +++++++++
+ tensorflow/contrib/cmake/external/re2.cmake         |  2 ++
+ tensorflow/contrib/cmake/external/snappy.cmake      |  2 ++
+ tensorflow/contrib/cmake/external/sqlite.cmake      |  7 ++++++-
+ tensorflow/contrib/cmake/external/zlib.cmake        |  8 ++++++++
+ tensorflow/contrib/cmake/patches/gif/CMakeLists.txt | 10 +++++-----
+ .../contrib/cmake/patches/jpeg/CMakeLists.txt       | 10 +++++-----
+ .../contrib/cmake/patches/lmdb/CMakeLists.txt       | 10 +++++-----
+ .../contrib/cmake/patches/nsync/CMakeLists.txt      | 12 ++++++------
+ tensorflow/core/platform/cpu_info.cc                |  2 ++
+ tensorflow/core/platform/windows/env_time.cc        |  2 +-
+ 23 files changed, 149 insertions(+), 38 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
-index a0a5b0e..98ace3b 100644
+index a0a5b0e..2b5e69d 100644
 --- a/tensorflow/contrib/cmake/CMakeLists.txt
 +++ b/tensorflow/contrib/cmake/CMakeLists.txt
-@@ -149,17 +149,17 @@ if(WIN32)
+@@ -114,6 +114,9 @@ function(SHOW_VARIABLES)
+     endforeach()
+ endfunction()
+ 
++set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse")
++set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse")
++
+ # External dependencies
+ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/external)
+ 
+@@ -149,17 +152,17 @@ if(WIN32)
    add_definitions(-DWIN32 -DOS_WIN -D_MBCS -DWIN32_LEAN_AND_MEAN -DNOGDI -DPLATFORM_WINDOWS)
    add_definitions(-DTENSORFLOW_USE_EIGEN_THREADPOOL -DEIGEN_HAS_C99_MATH)
    add_definitions(-DTF_COMPILE_LIBRARY)
@@ -31,17 +55,50 @@ index a0a5b0e..98ace3b 100644
    # Suppress linker warnings.
    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
    set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
-   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
+-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
 -  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
++  # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
 +  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
    set(CMAKE_CXX_FLAGS_DEBUG "/D_DEBUG /MDd /Ob2")
    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /D_ITERATOR_DEBUG_LEVEL=0")
    set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /D_ITERATOR_DEBUG_LEVEL=0")
+diff --git a/tensorflow/contrib/cmake/external/double_conversion.cmake b/tensorflow/contrib/cmake/external/double_conversion.cmake
+index 5c5adaf..07d2ac6 100644
+--- a/tensorflow/contrib/cmake/external/double_conversion.cmake
++++ b/tensorflow/contrib/cmake/external/double_conversion.cmake
+@@ -22,7 +22,12 @@ set(double_conversion_LIBRARIES ${double_conversion_BUILD}/double-conversion/lib
+ set(double_conversion_INCLUDES ${double_conversion_BUILD})
+ 
+ if(WIN32)
+-  set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/$(Configuration)/double-conversion.lib)
++  # set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/$(Configuration)/double-conversion.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/libdouble-conversion.a)
++  else()
++    set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/$(Configuration)/double-conversion.lib)
++  endif()
+ else()
+   set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/libdouble-conversion.a)
+ endif()
 diff --git a/tensorflow/contrib/cmake/external/farmhash.cmake b/tensorflow/contrib/cmake/external/farmhash.cmake
-index d51569b..254ba27 100644
+index d51569b..e14427e 100644
 --- a/tensorflow/contrib/cmake/external/farmhash.cmake
 +++ b/tensorflow/contrib/cmake/external/farmhash.cmake
-@@ -59,6 +59,13 @@ else()
+@@ -25,7 +25,12 @@ set(farmhash_HEADERS
+ )
+ 
+ if(WIN32)
+-  set(farmhash_STATIC_LIBRARIES ${farmhash_INSTALL}/lib/farmhash.lib)
++  # set(farmhash_STATIC_LIBRARIES ${farmhash_INSTALL}/lib/farmhash.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(farmhash_STATIC_LIBRARIES ${farmhash_INSTALL}/lib/libfarmhash.a)
++  else()
++    set(farmhash_STATIC_LIBRARIES ${farmhash_INSTALL}/lib/farmhash.lib)
++  endif()
+ 
+   ExternalProject_Add(farmhash
+       PREFIX farmhash
+@@ -59,6 +64,13 @@ else()
  
  endif()
  
@@ -55,11 +112,59 @@ index d51569b..254ba27 100644
  # put farmhash includes in the directory where they are expected
  add_custom_target(farmhash_create_destination_dir
      COMMAND ${CMAKE_COMMAND} -E make_directory ${farmhash_INCLUDE_DIR}
+diff --git a/tensorflow/contrib/cmake/external/fft2d.cmake b/tensorflow/contrib/cmake/external/fft2d.cmake
+index a7bc50d..8cc7bfb 100644
+--- a/tensorflow/contrib/cmake/external/fft2d.cmake
++++ b/tensorflow/contrib/cmake/external/fft2d.cmake
+@@ -21,7 +21,12 @@ set(fft2d_BUILD ${CMAKE_CURRENT_BINARY_DIR}/fft2d/)
+ set(fft2d_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/fft2d/src)
+ 
+ if(WIN32)
+-  set(fft2d_STATIC_LIBRARIES ${fft2d_BUILD}/src/lib/fft2d.lib)
++  # set(fft2d_STATIC_LIBRARIES ${fft2d_BUILD}/src/lib/fft2d.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(fft2d_STATIC_LIBRARIES ${fft2d_BUILD}/src/lib/libfft2d.a)
++  else()
++    set(fft2d_STATIC_LIBRARIES ${fft2d_BUILD}/src/lib/fft2d.lib)
++  endif()
+ 
+   ExternalProject_Add(fft2d
+       PREFIX fft2d
+diff --git a/tensorflow/contrib/cmake/external/gif.cmake b/tensorflow/contrib/cmake/external/gif.cmake
+index e1f8d13..8cfe885 100644
+--- a/tensorflow/contrib/cmake/external/gif.cmake
++++ b/tensorflow/contrib/cmake/external/gif.cmake
+@@ -27,7 +27,12 @@ set(gif_HEADERS
+ 
+ if(WIN32)
+ 
+-  set(gif_STATIC_LIBRARIES ${gif_INSTALL}/lib/giflib.lib)
++  # set(gif_STATIC_LIBRARIES ${gif_INSTALL}/lib/giflib.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(gif_STATIC_LIBRARIES ${gif_INSTALL}/lib/libgiflib.a)
++  else()
++    set(gif_STATIC_LIBRARIES ${gif_INSTALL}/lib/giflib.lib)
++  endif()
+ 
+   ExternalProject_Add(gif
+       PREFIX gif
 diff --git a/tensorflow/contrib/cmake/external/grpc.cmake b/tensorflow/contrib/cmake/external/grpc.cmake
-index b1e64aa..6509b75 100644
+index b1e64aa..1721e91 100644
 --- a/tensorflow/contrib/cmake/external/grpc.cmake
 +++ b/tensorflow/contrib/cmake/external/grpc.cmake
-@@ -57,6 +57,8 @@ ExternalProject_Add(grpc
+@@ -29,6 +29,11 @@ if(WIN32)
+         ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/Release/grpc++_unsecure.lib
+         ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/Release/grpc_unsecure.lib
+         ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/Release/gpr.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(grpc_STATIC_LIBRARIES
++        ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/libgrpc++_unsecure.a
++        ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/libgrpc_unsecure.a
++        ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/libgpr.a)
+   else()
+     set(grpc_STATIC_LIBRARIES
+         ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/grpc++_unsecure.lib
+@@ -57,6 +62,8 @@ ExternalProject_Add(grpc
      DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
      BUILD_IN_SOURCE 1
      BUILD_BYPRODUCTS ${grpc_STATIC_LIBRARIES}
@@ -68,11 +173,92 @@ index b1e64aa..6509b75 100644
      BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release --target ${grpc_TARGET}
      COMMAND ${CMAKE_COMMAND} --build . --config Release --target grpc_cpp_plugin
      INSTALL_COMMAND ""
+diff --git a/tensorflow/contrib/cmake/external/highwayhash.cmake b/tensorflow/contrib/cmake/external/highwayhash.cmake
+index a6e8a38..1a47c4b 100644
+--- a/tensorflow/contrib/cmake/external/highwayhash.cmake
++++ b/tensorflow/contrib/cmake/external/highwayhash.cmake
+@@ -30,7 +30,12 @@ add_custom_target(highwayhash_copy_headers_to_destination
+ 
+ if(WIN32)
+   set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
+-  set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/highwayhash.lib)
++  # set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/highwayhash.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/libhighwayhash.a)
++  else()
++    set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/highwayhash.lib)
++  endif()
+ else()
+   set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
+   set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/libhighwayhash.a)
+diff --git a/tensorflow/contrib/cmake/external/jpeg.cmake b/tensorflow/contrib/cmake/external/jpeg.cmake
+index c1c5842..dd9844f 100644
+--- a/tensorflow/contrib/cmake/external/jpeg.cmake
++++ b/tensorflow/contrib/cmake/external/jpeg.cmake
+@@ -21,7 +21,12 @@ set(jpeg_BUILD ${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg)
+ set(jpeg_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/jpeg/install)
+ 
+ if(WIN32)
+-  set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/libjpeg.lib)
++  # set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/libjpeg.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/liblibjpeg.a)
++  else()
++    set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/libjpeg.lib)
++  endif()
+ else()
+   set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/libjpeg.a)
+ endif()
+diff --git a/tensorflow/contrib/cmake/external/jsoncpp.cmake b/tensorflow/contrib/cmake/external/jsoncpp.cmake
+index 84c52e3..23e619a 100644
+--- a/tensorflow/contrib/cmake/external/jsoncpp.cmake
++++ b/tensorflow/contrib/cmake/external/jsoncpp.cmake
+@@ -25,6 +25,8 @@ set(jsoncpp_INCLUDES ${jsoncpp_BUILD})
+ if(WIN32)
+   if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+     set(jsoncpp_STATIC_LIBRARIES ${jsoncpp_BUILD}/$(Configuration)/jsoncpp.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(jsoncpp_STATIC_LIBRARIES ${jsoncpp_BUILD}/libjsoncpp.a)
+   else()
+     set(jsoncpp_STATIC_LIBRARIES ${jsoncpp_BUILD}/jsoncpp.lib)
+   endif()
+diff --git a/tensorflow/contrib/cmake/external/lmdb.cmake b/tensorflow/contrib/cmake/external/lmdb.cmake
+index ed5ab78..2bc5193 100644
+--- a/tensorflow/contrib/cmake/external/lmdb.cmake
++++ b/tensorflow/contrib/cmake/external/lmdb.cmake
+@@ -21,7 +21,12 @@ set(lmdb_BUILD ${CMAKE_BINARY_DIR}/lmdb/src/lmdb)
+ set(lmdb_INSTALL ${CMAKE_BINARY_DIR}/lmdb/install)
+ 
+ if(WIN32)
+-    set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/lmdb.lib)
++    # set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/lmdb.lib)
++    if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++      set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/liblmdb.a)
++    else()
++      set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/lmdb.lib)
++    endif()
+ else()
+     set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/liblmdb.a)
+ endif()
 diff --git a/tensorflow/contrib/cmake/external/nsync.cmake b/tensorflow/contrib/cmake/external/nsync.cmake
-index eba3bcf..1bb4621 100644
+index eba3bcf..87111c0 100644
 --- a/tensorflow/contrib/cmake/external/nsync.cmake
 +++ b/tensorflow/contrib/cmake/external/nsync.cmake
-@@ -51,5 +51,19 @@ ExternalProject_Add(nsync
+@@ -30,7 +30,12 @@ add_custom_target(nsync_copy_headers_to_destination
+ 
+ if(WIN32)
+   set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
+-  set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/nsync.lib)
++  # set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/nsync.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/libnsync.a)
++  else()
++    set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/nsync.lib)
++  endif()
+ else()
+   set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
+   set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/libnsync.a)
+@@ -51,5 +56,19 @@ ExternalProject_Add(nsync
          -DCMAKE_INSTALL_PREFIX:STRING=${nsync_INSTALL}
  	-DNSYNC_LANGUAGE:STRING=c++11)
  
@@ -93,10 +279,25 @@ index eba3bcf..1bb4621 100644
  add_custom_command(TARGET nsync_copy_headers_to_destination PRE_BUILD
      COMMAND ${CMAKE_COMMAND} -E copy_directory ${nsync_INSTALL}/include/ ${nsync_INCLUDE_DIR}/)
 diff --git a/tensorflow/contrib/cmake/external/png.cmake b/tensorflow/contrib/cmake/external/png.cmake
-index ad2af01..53c6672 100644
+index ad2af01..f12bcb6 100644
 --- a/tensorflow/contrib/cmake/external/png.cmake
 +++ b/tensorflow/contrib/cmake/external/png.cmake
-@@ -50,6 +50,8 @@ ExternalProject_Add(png
+@@ -25,6 +25,14 @@ if(WIN32)
+     set(png_STATIC_LIBRARIES 
+       debug ${CMAKE_BINARY_DIR}/png/install/lib/libpng16_staticd.lib
+       optimized ${CMAKE_BINARY_DIR}/png/install/lib/libpng16_static.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    if(CMAKE_BUILD_TYPE EQUAL Debug)
++      set(png_STATIC_LIBRARIES 
++        ${CMAKE_BINARY_DIR}/png/install/lib/libpng16d.a)
++    else()
++      set(png_STATIC_LIBRARIES 
++        ${CMAKE_BINARY_DIR}/png/install/lib/libpng16.a)
++    endif()
+   else()
+     if(CMAKE_BUILD_TYPE EQUAL Debug)
+       set(png_STATIC_LIBRARIES 
+@@ -50,6 +58,8 @@ ExternalProject_Add(png
      URL ${png_URL}
      URL_HASH ${png_HASH}
      BUILD_BYPRODUCTS ${png_STATIC_LIBRARIES}
@@ -105,6 +306,89 @@ index ad2af01..53c6672 100644
      INSTALL_DIR ${png_INSTALL}
      DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
      CMAKE_CACHE_ARGS
+diff --git a/tensorflow/contrib/cmake/external/protobuf.cmake b/tensorflow/contrib/cmake/external/protobuf.cmake
+index f56fb35..1565c1e 100644
+--- a/tensorflow/contrib/cmake/external/protobuf.cmake
++++ b/tensorflow/contrib/cmake/external/protobuf.cmake
+@@ -24,6 +24,15 @@ if(WIN32)
+       debug ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/libprotobufd.lib
+       optimized ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/libprotobuf.lib)
+     set(PROTOBUF_PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/protoc.exe)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    if(CMAKE_BUILD_TYPE EQUAL Debug)
++      set(protobuf_STATIC_LIBRARIES
++        ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/libprotobufd.a)
++    else()
++      set(protobuf_STATIC_LIBRARIES
++        ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/libprotobuf.a)
++    endif()
++    set(PROTOBUF_PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/protoc.exe)
+   else()
+     if(CMAKE_BUILD_TYPE EQUAL Debug)
+       set(protobuf_STATIC_LIBRARIES
+diff --git a/tensorflow/contrib/cmake/external/re2.cmake b/tensorflow/contrib/cmake/external/re2.cmake
+index c4bc0b1..78512ef 100644
+--- a/tensorflow/contrib/cmake/external/re2.cmake
++++ b/tensorflow/contrib/cmake/external/re2.cmake
+@@ -23,6 +23,8 @@ set(re2_TAG e7efc48)
+ if(WIN32)
+   if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+     set(re2_STATIC_LIBRARIES ${re2_BUILD}/$(Configuration)/re2.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(re2_STATIC_LIBRARIES ${re2_BUILD}/libre2.a)
+   else()
+     set(re2_STATIC_LIBRARIES ${re2_BUILD}/re2.lib)
+   endif()
+diff --git a/tensorflow/contrib/cmake/external/snappy.cmake b/tensorflow/contrib/cmake/external/snappy.cmake
+index f541976..fe80283 100644
+--- a/tensorflow/contrib/cmake/external/snappy.cmake
++++ b/tensorflow/contrib/cmake/external/snappy.cmake
+@@ -22,6 +22,8 @@ set(snappy_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/snappy/src/snappy)
+ if(WIN32)
+     if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+         set(snappy_STATIC_LIBRARIES ${snappy_BUILD}/$(Configuration)/snappy.lib)
++    elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++        set(snappy_STATIC_LIBRARIES ${snappy_BUILD}/libsnappy.a)
+     else()
+         set(snappy_STATIC_LIBRARIES ${snappy_BUILD}/snappy.lib)
+     endif()
+diff --git a/tensorflow/contrib/cmake/external/sqlite.cmake b/tensorflow/contrib/cmake/external/sqlite.cmake
+index 7f835d2..7b30e46 100644
+--- a/tensorflow/contrib/cmake/external/sqlite.cmake
++++ b/tensorflow/contrib/cmake/external/sqlite.cmake
+@@ -21,7 +21,12 @@ set(sqlite_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sqlite/src/sqlite)
+ set(sqlite_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/sqlite/install)
+ 
+ if(WIN32)
+-  set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/sqlite.lib)
++  # set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/sqlite.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/libsqlite.a)
++  else()
++    set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/sqlite.lib)
++  endif()
+ else()
+   set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/libsqlite.a)
+ endif()
+diff --git a/tensorflow/contrib/cmake/external/zlib.cmake b/tensorflow/contrib/cmake/external/zlib.cmake
+index 8942f3e..3e81fae 100644
+--- a/tensorflow/contrib/cmake/external/zlib.cmake
++++ b/tensorflow/contrib/cmake/external/zlib.cmake
+@@ -39,6 +39,14 @@ else (systemlib_ZLIB)
+       set(zlib_STATIC_LIBRARIES
+           debug ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/zlibstaticd.lib
+           optimized ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/zlibstatic.lib)
++    elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++      if(CMAKE_BUILD_TYPE EQUAL Debug)
++        set(zlib_STATIC_LIBRARIES
++            ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/libzlibstaticd.a)
++      else()
++        set(zlib_STATIC_LIBRARIES
++            ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/libzlibstatic.a)
++      endif()
+     else()
+       if(CMAKE_BUILD_TYPE EQUAL Debug)
+         set(zlib_STATIC_LIBRARIES
 diff --git a/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt b/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt
 index e19df93..d985642 100644
 --- a/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt
@@ -198,3 +482,29 @@ index 6f059c7..781a6bd 100644
      set (NSYNC_OS_SRC
        "platform/c++11/src/nsync_semaphore_mutex.cc"
        "platform/win32/src/clock_gettime.c"
+diff --git a/tensorflow/core/platform/cpu_info.cc b/tensorflow/core/platform/cpu_info.cc
+index e9da3d8..adbd250 100644
+--- a/tensorflow/core/platform/cpu_info.cc
++++ b/tensorflow/core/platform/cpu_info.cc
+@@ -20,6 +20,8 @@ limitations under the License.
+ #if defined(PLATFORM_IS_X86)
+ #include <mutex>  // NOLINT
+ #endif
++#include <intrin.h>
++#include <immintrin.h>
+ 
+ // SIMD extension querying is only available on x86.
+ #ifdef PLATFORM_IS_X86
+diff --git a/tensorflow/core/platform/windows/env_time.cc b/tensorflow/core/platform/windows/env_time.cc
+index 16cc9dc..c4fdcae 100644
+--- a/tensorflow/core/platform/windows/env_time.cc
++++ b/tensorflow/core/platform/windows/env_time.cc
+@@ -44,7 +44,7 @@ class WindowsEnvTime : public EnvTime {
+       // versions of Windows, so we need to check for its existence here.
+       // All std::chrono clocks on Windows proved to return
+       // values that may repeat, which is not good enough for some uses.
+-      constexpr int64_t kUnixEpochStartTicks = 116444736000000000i64;
++      constexpr int64_t kUnixEpochStartTicks = 116444736000000000LL;
+       constexpr int64_t kFtToMicroSec = 10;
+ 
+       // This interface needs to return system time and not
