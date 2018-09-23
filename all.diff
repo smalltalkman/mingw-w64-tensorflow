@@ -21,7 +21,9 @@
  .../contrib/cmake/patches/nsync/CMakeLists.txt      | 12 ++++++------
  tensorflow/core/platform/cpu_info.cc                |  2 ++
  tensorflow/core/platform/windows/env_time.cc        |  2 +-
- 23 files changed, 150 insertions(+), 38 deletions(-)
+ .../core/platform/windows/windows_file_system.cc    |  4 ++++
+ .../core/platform/windows/windows_file_system.h     |  2 ++
+ 25 files changed, 156 insertions(+), 38 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..d03942d 100644
@@ -509,3 +511,31 @@ index 16cc9dc..c4fdcae 100644
        constexpr int64_t kFtToMicroSec = 10;
  
        // This interface needs to return system time and not
+diff --git a/tensorflow/core/platform/windows/windows_file_system.cc b/tensorflow/core/platform/windows/windows_file_system.cc
+index 9079a5c..d8c0762 100644
+--- a/tensorflow/core/platform/windows/windows_file_system.cc
++++ b/tensorflow/core/platform/windows/windows_file_system.cc
+@@ -486,6 +486,10 @@ Status WindowsFileSystem::RenameFile(const string& src, const string& target) {
+   return result;
+ }
+ 
++Status WindowsFileSystem::CopyFile(const string& src, const string& target) {
++  return FileSystemCopyFile(this, src, this, target);
++}
++
+ Status WindowsFileSystem::GetMatchingPaths(const string& pattern,
+                                            std::vector<string>* results) {
+   // NOTE(mrry): The existing implementation of FileSystem::GetMatchingPaths()
+diff --git a/tensorflow/core/platform/windows/windows_file_system.h b/tensorflow/core/platform/windows/windows_file_system.h
+index 6b04720..e86ec52 100644
+--- a/tensorflow/core/platform/windows/windows_file_system.h
++++ b/tensorflow/core/platform/windows/windows_file_system.h
+@@ -63,6 +63,8 @@ class WindowsFileSystem : public FileSystem {
+ 
+   Status RenameFile(const string& src, const string& target) override;
+ 
++  Status CopyFile(const string& src, const string& target);
++
+   string TranslateName(const string& name) const override { return name; }
+ };
+ 
