@@ -1,4 +1,4 @@
- tensorflow/contrib/cmake/CMakeLists.txt             | 19 +++++++++++--------
+ tensorflow/contrib/cmake/CMakeLists.txt             | 17 ++++++++++-------
  .../contrib/cmake/external/double_conversion.cmake  |  7 ++++++-
  tensorflow/contrib/cmake/external/farmhash.cmake    | 14 +++++++++++++-
  tensorflow/contrib/cmake/external/fft2d.cmake       |  7 ++++++-
@@ -21,19 +21,12 @@
  .../contrib/cmake/patches/nsync/CMakeLists.txt      | 12 ++++++------
  tensorflow/core/platform/cpu_info.cc                |  2 ++
  tensorflow/core/platform/windows/env_time.cc        |  2 +-
- 23 files changed, 150 insertions(+), 39 deletions(-)
+ 23 files changed, 149 insertions(+), 38 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
-index a0a5b0e..fa9aa21 100644
+index a0a5b0e..2b5e69d 100644
 --- a/tensorflow/contrib/cmake/CMakeLists.txt
 +++ b/tensorflow/contrib/cmake/CMakeLists.txt
-@@ -1,5 +1,5 @@
- # Minimum CMake required
--cmake_minimum_required(VERSION 3.5)
-+cmake_minimum_required(VERSION 3.4)
- 
- # Project
- project(tensorflow C CXX)
 @@ -114,6 +114,9 @@ function(SHOW_VARIABLES)
      endforeach()
  endfunction()
