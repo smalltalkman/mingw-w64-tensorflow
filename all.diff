@@ -1,6 +1,6 @@
  tensorflow/contrib/cmake/CMakeLists.txt             | 18 +++++++++++-------
  .../contrib/cmake/external/double_conversion.cmake  |  7 ++++++-
- tensorflow/contrib/cmake/external/farmhash.cmake    | 14 +++++++++++++-
+ tensorflow/contrib/cmake/external/farmhash.cmake    | 15 ++++++++++++++-
  tensorflow/contrib/cmake/external/fft2d.cmake       |  7 ++++++-
  tensorflow/contrib/cmake/external/gif.cmake         |  7 ++++++-
  tensorflow/contrib/cmake/external/grpc.cmake        |  7 +++++++
@@ -24,7 +24,7 @@
  tensorflow/core/platform/windows/env_time.cc        |  2 +-
  .../core/platform/windows/windows_file_system.cc    |  4 ++++
  .../core/platform/windows/windows_file_system.h     |  2 ++
- 26 files changed, 157 insertions(+), 39 deletions(-)
+ 26 files changed, 158 insertions(+), 39 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..d03942d 100644
@@ -85,10 +85,14 @@ index 5c5adaf..07d2ac6 100644
    set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/libdouble-conversion.a)
  endif()
 diff --git a/tensorflow/contrib/cmake/external/farmhash.cmake b/tensorflow/contrib/cmake/external/farmhash.cmake
-index d51569b..e14427e 100644
+index d51569b..fbb85ed 100644
 --- a/tensorflow/contrib/cmake/external/farmhash.cmake
 +++ b/tensorflow/contrib/cmake/external/farmhash.cmake
-@@ -25,7 +25,12 @@ set(farmhash_HEADERS
+@@ -22,10 +22,16 @@ set(farmhash_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/farmhash/install)
+ set(farmhash_INCLUDES ${farmhash_BUILD})
+ set(farmhash_HEADERS
+     "${farmhash_BUILD}/src/farmhash.h"
++    "${farmhash_BUILD}/src/endian.h"
  )
  
  if(WIN32)
@@ -102,13 +106,13 @@ index d51569b..e14427e 100644
  
    ExternalProject_Add(farmhash
        PREFIX farmhash
-@@ -59,6 +64,13 @@ else()
+@@ -59,6 +65,13 @@ else()
  
  endif()
  
 +ExternalProject_Add_Step(farmhash "copy_MinGW-endian.h"
 +    COMMAND ${CMAKE_COMMAND} -E copy
-+    ${CMAKE_SOURCE_DIR}/patches/farmhash/MinGW-endian.h ${farmhash_BUILD}/endian.h
++    ${CMAKE_SOURCE_DIR}/patches/farmhash/MinGW-endian.h ${farmhash_BUILD}/src/endian.h
 +    DEPENDEES patch
 +    DEPENDERS build
 +)
