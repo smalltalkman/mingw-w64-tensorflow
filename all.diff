@@ -20,11 +20,12 @@
  .../contrib/cmake/patches/lmdb/CMakeLists.txt       | 10 +++++-----
  .../contrib/cmake/patches/nsync/CMakeLists.txt      | 12 ++++++------
  tensorflow/contrib/cmake/tf_python.cmake            |  2 +-
+ tensorflow/core/common_runtime/pool_allocator.cc    |  4 ----
  tensorflow/core/platform/cpu_info.cc                |  2 ++
  tensorflow/core/platform/windows/env_time.cc        |  2 +-
  .../core/platform/windows/windows_file_system.cc    |  4 ++++
  .../core/platform/windows/windows_file_system.h     |  2 ++
- 26 files changed, 158 insertions(+), 39 deletions(-)
+ 27 files changed, 158 insertions(+), 43 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..d03942d 100644
@@ -503,6 +504,21 @@ index 32b185f..7f08318 100644
        DEPENDS ${tf_python_op_lib_name}_gen_python
      )
  
+diff --git a/tensorflow/core/common_runtime/pool_allocator.cc b/tensorflow/core/common_runtime/pool_allocator.cc
+index 10a24ed..a00c9b9 100644
+--- a/tensorflow/core/common_runtime/pool_allocator.cc
++++ b/tensorflow/core/common_runtime/pool_allocator.cc
+@@ -16,10 +16,6 @@ limitations under the License.
+ #include "tensorflow/core/common_runtime/pool_allocator.h"
+ 
+ #include <errno.h>
+-#ifndef _MSC_VER
+-#include <strings.h>
+-#include <sys/mman.h>  // for munmap
+-#endif
+ 
+ #include <map>
+ #include <utility>
 diff --git a/tensorflow/core/platform/cpu_info.cc b/tensorflow/core/platform/cpu_info.cc
 index e9da3d8..adbd250 100644
 --- a/tensorflow/core/platform/cpu_info.cc
