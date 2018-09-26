@@ -1,37 +1,37 @@
- tensorflow/contrib/cmake/CMakeLists.txt            | 24 +++++++++++++++-------
- .../contrib/cmake/external/double_conversion.cmake |  7 ++++++-
- tensorflow/contrib/cmake/external/farmhash.cmake   | 15 +++++++++++++-
- tensorflow/contrib/cmake/external/fft2d.cmake      |  7 ++++++-
- tensorflow/contrib/cmake/external/gemmlowp.cmake   |  7 +++++++
- tensorflow/contrib/cmake/external/gif.cmake        |  7 ++++++-
- tensorflow/contrib/cmake/external/grpc.cmake       |  7 +++++++
- .../contrib/cmake/external/highwayhash.cmake       |  7 ++++++-
- tensorflow/contrib/cmake/external/jpeg.cmake       |  7 ++++++-
+ tensorflow/contrib/cmake/CMakeLists.txt            | 28 ++++++++++-----
+ .../contrib/cmake/external/double_conversion.cmake |  7 +++-
+ tensorflow/contrib/cmake/external/farmhash.cmake   | 15 +++++++-
+ tensorflow/contrib/cmake/external/fft2d.cmake      |  7 +++-
+ tensorflow/contrib/cmake/external/gemmlowp.cmake   |  7 ++++
+ tensorflow/contrib/cmake/external/gif.cmake        |  7 +++-
+ tensorflow/contrib/cmake/external/grpc.cmake       |  7 ++++
+ .../contrib/cmake/external/highwayhash.cmake       |  7 +++-
+ tensorflow/contrib/cmake/external/jpeg.cmake       |  7 +++-
  tensorflow/contrib/cmake/external/jsoncpp.cmake    |  2 ++
- tensorflow/contrib/cmake/external/lmdb.cmake       |  7 ++++++-
- tensorflow/contrib/cmake/external/nsync.cmake      | 21 ++++++++++++++++++-
- tensorflow/contrib/cmake/external/png.cmake        | 10 +++++++++
- tensorflow/contrib/cmake/external/protobuf.cmake   |  9 ++++++++
+ tensorflow/contrib/cmake/external/lmdb.cmake       |  7 +++-
+ tensorflow/contrib/cmake/external/nsync.cmake      | 21 +++++++++++-
+ tensorflow/contrib/cmake/external/png.cmake        | 10 ++++++
+ tensorflow/contrib/cmake/external/protobuf.cmake   |  9 +++++
  tensorflow/contrib/cmake/external/re2.cmake        |  2 ++
  tensorflow/contrib/cmake/external/snappy.cmake     |  2 ++
- tensorflow/contrib/cmake/external/sqlite.cmake     |  7 ++++++-
- tensorflow/contrib/cmake/external/zlib.cmake       |  8 ++++++++
- .../contrib/cmake/patches/gif/CMakeLists.txt       | 10 ++++-----
- .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 ++++-----
- .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 ++++-----
- .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++++------
+ tensorflow/contrib/cmake/external/sqlite.cmake     |  7 +++-
+ tensorflow/contrib/cmake/external/zlib.cmake       |  8 +++++
+ .../contrib/cmake/patches/gif/CMakeLists.txt       | 10 +++---
+ .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 +++---
+ .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 +++---
+ .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++----
  tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
- tensorflow/contrib/cmake/tf_python.cmake           |  2 +-
- tensorflow/core/common_runtime/pool_allocator.cc   |  4 ----
+ tensorflow/contrib/cmake/tf_python.cmake           | 40 +++++++++++++---------
+ tensorflow/core/common_runtime/pool_allocator.cc   |  4 ---
  .../core/grappler/clusters/single_machine.cc       |  2 ++
  tensorflow/core/platform/cpu_info.cc               |  2 ++
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
- .../core/platform/windows/windows_file_system.cc   |  4 ++++
+ .../core/platform/windows/windows_file_system.cc   |  4 +++
  .../core/platform/windows/windows_file_system.h    |  2 ++
- 30 files changed, 174 insertions(+), 44 deletions(-)
+ 30 files changed, 198 insertions(+), 62 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
-index a0a5b0e..c81c6d8 100644
+index a0a5b0e..ae64c3a 100644
 --- a/tensorflow/contrib/cmake/CMakeLists.txt
 +++ b/tensorflow/contrib/cmake/CMakeLists.txt
 @@ -114,6 +114,16 @@ function(SHOW_VARIABLES)
@@ -67,10 +67,12 @@ index a0a5b0e..c81c6d8 100644
 +  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
 +  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
    # Suppress linker warnings.
-   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
-   set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
+-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
+-  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
 -  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
 -  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
++  # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
++  # set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
 +  # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
 +  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
    set(CMAKE_CXX_FLAGS_DEBUG "/D_DEBUG /MDd /Ob2")
@@ -529,7 +531,7 @@ index 844f626..3800f91 100644
  if (tensorflow_ENABLE_GPU)
    set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
-index 32b185f..7f08318 100644
+index 32b185f..669dfbf 100644
 --- a/tensorflow/contrib/cmake/tf_python.cmake
 +++ b/tensorflow/contrib/cmake/tf_python.cmake
 @@ -305,7 +305,7 @@ function(GENERATE_PYTHON_OP_LIB tf_python_op_lib_name)
@@ -541,6 +543,65 @@ index 32b185f..7f08318 100644
        DEPENDS ${tf_python_op_lib_name}_gen_python
      )
  
+@@ -560,21 +560,21 @@ if(WIN32)
+ 	${nsync_STATIC_LIBRARIES}
+     )
+ 
+-    if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+-        set(pywrap_tensorflow_deffile "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow.def")
+-    else()
+-        set(pywrap_tensorflow_deffile "${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow.def")
+-    endif()
+-    set_source_files_properties(${pywrap_tensorflow_deffile} PROPERTIES GENERATED TRUE)
+-    math(EXPR tensorflow_target_bitness "${CMAKE_SIZEOF_VOID_P}*8")
+-    add_custom_command(TARGET pywrap_tensorflow_internal_static POST_BUILD
+-        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/create_def_file.py
+-            --input "${pywrap_tensorflow_internal_static_dependencies}"
+-            --output "${pywrap_tensorflow_deffile}"
+-            --target _pywrap_tensorflow_internal.pyd
+-            --bitness "${tensorflow_target_bitness}"
+-        BYPRODUCTS ${pywrap_tensorflow_deffile} # Required for Ninja
+-    )
++    # if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
++        # set(pywrap_tensorflow_deffile "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow.def")
++    # else()
++        # set(pywrap_tensorflow_deffile "${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow.def")
++    # endif()
++    # set_source_files_properties(${pywrap_tensorflow_deffile} PROPERTIES GENERATED TRUE)
++    # math(EXPR tensorflow_target_bitness "${CMAKE_SIZEOF_VOID_P}*8")
++    # add_custom_command(TARGET pywrap_tensorflow_internal_static POST_BUILD
++        # COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/create_def_file.py
++            # --input "${pywrap_tensorflow_internal_static_dependencies}"
++            # --output "${pywrap_tensorflow_deffile}"
++            # --target _pywrap_tensorflow_internal.pyd
++            # --bitness "${tensorflow_target_bitness}"
++        # BYPRODUCTS ${pywrap_tensorflow_deffile} # Required for Ninja
++    # )
+ endif(WIN32)
+ 
+ # pywrap_tensorflow_internal is a shared library containing all of the
+@@ -599,7 +599,7 @@ add_library(pywrap_tensorflow_internal SHARED
+     $<TARGET_OBJECTS:tf_core_kernels>
+     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<$<BOOL:${BOOL_WIN32}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>>
+     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+-    ${pywrap_tensorflow_deffile}
++    # ${pywrap_tensorflow_deffile}
+ )
+ 
+ # There is a bug in GCC 5 resulting in undefined reference to a __cpu_model function when
+@@ -718,6 +718,12 @@ if(WIN32)
+                                        ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow_internal.pyd
+       COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)/pywrap_tensorflow_internal.lib
+                                        ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    add_custom_command(TARGET pywrap_tensorflow_internal POST_BUILD
++      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal.dll
++                                       ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow_internal.pyd
++      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal.dll.a
++                                       ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/)
+   else()
+     add_custom_command(TARGET pywrap_tensorflow_internal POST_BUILD
+       COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow_internal.dll
 diff --git a/tensorflow/core/common_runtime/pool_allocator.cc b/tensorflow/core/common_runtime/pool_allocator.cc
 index 10a24ed..a00c9b9 100644
 --- a/tensorflow/core/common_runtime/pool_allocator.cc
