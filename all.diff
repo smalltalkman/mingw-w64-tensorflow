@@ -1,4 +1,4 @@
- tensorflow/contrib/cmake/CMakeLists.txt            | 23 +++++++++++++++-------
+ tensorflow/contrib/cmake/CMakeLists.txt            | 24 +++++++++++++++-------
  .../contrib/cmake/external/double_conversion.cmake |  7 ++++++-
  tensorflow/contrib/cmake/external/farmhash.cmake   | 15 +++++++++++++-
  tensorflow/contrib/cmake/external/fft2d.cmake      |  7 ++++++-
@@ -8,16 +8,16 @@
  tensorflow/contrib/cmake/external/jpeg.cmake       |  7 ++++++-
  tensorflow/contrib/cmake/external/jsoncpp.cmake    |  2 ++
  tensorflow/contrib/cmake/external/lmdb.cmake       |  7 ++++++-
- tensorflow/contrib/cmake/external/nsync.cmake      | 21 +++++++++++++++++++-
- tensorflow/contrib/cmake/external/png.cmake        | 10 ++++++++++
- tensorflow/contrib/cmake/external/protobuf.cmake   |  9 +++++++++
+ tensorflow/contrib/cmake/external/nsync.cmake      | 21 ++++++++++++++++++-
+ tensorflow/contrib/cmake/external/png.cmake        | 10 +++++++++
+ tensorflow/contrib/cmake/external/protobuf.cmake   |  9 ++++++++
  tensorflow/contrib/cmake/external/re2.cmake        |  2 ++
  tensorflow/contrib/cmake/external/snappy.cmake     |  2 ++
  tensorflow/contrib/cmake/external/sqlite.cmake     |  7 ++++++-
  tensorflow/contrib/cmake/external/zlib.cmake       |  8 ++++++++
- .../contrib/cmake/patches/gif/CMakeLists.txt       | 10 +++++-----
- .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 +++++-----
- .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 +++++-----
+ .../contrib/cmake/patches/gif/CMakeLists.txt       | 10 ++++-----
+ .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 ++++-----
+ .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 ++++-----
  .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++++------
  tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
  tensorflow/contrib/cmake/tf_python.cmake           |  2 +-
@@ -27,19 +27,20 @@
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 ++++
  .../core/platform/windows/windows_file_system.h    |  2 ++
- 29 files changed, 166 insertions(+), 44 deletions(-)
+ 29 files changed, 167 insertions(+), 44 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
-index a0a5b0e..c85fe98 100644
+index a0a5b0e..c81c6d8 100644
 --- a/tensorflow/contrib/cmake/CMakeLists.txt
 +++ b/tensorflow/contrib/cmake/CMakeLists.txt
-@@ -114,6 +114,15 @@ function(SHOW_VARIABLES)
+@@ -114,6 +114,16 @@ function(SHOW_VARIABLES)
      endforeach()
  endfunction()
  
 +# close warnings
 +add_compile_options(-Wno-attributes -Wno-ignored-attributes)
-+# add_compile_options(-Wno-conversion-null -Wno-shift-count-overflow)
++add_compile_options(-Wno-shift-count-overflow)
++# add_compile_options(-Wno-conversion-null)
 +# open msse
 +set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse")
 +set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse")
@@ -49,7 +50,7 @@ index a0a5b0e..c85fe98 100644
  # External dependencies
  set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/external)
  
-@@ -149,17 +158,17 @@ if(WIN32)
+@@ -149,17 +159,17 @@ if(WIN32)
    add_definitions(-DWIN32 -DOS_WIN -D_MBCS -DWIN32_LEAN_AND_MEAN -DNOGDI -DPLATFORM_WINDOWS)
    add_definitions(-DTENSORFLOW_USE_EIGEN_THREADPOOL -DEIGEN_HAS_C99_MATH)
    add_definitions(-DTF_COMPILE_LIBRARY)
