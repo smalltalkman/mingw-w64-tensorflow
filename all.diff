@@ -19,13 +19,15 @@
  .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 +++++-----
  .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 +++++-----
  .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++++------
+ tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
  tensorflow/contrib/cmake/tf_python.cmake           |  2 +-
  tensorflow/core/common_runtime/pool_allocator.cc   |  4 ----
+ .../core/grappler/clusters/single_machine.cc       |  2 ++
  tensorflow/core/platform/cpu_info.cc               |  2 ++
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 ++++
  .../core/platform/windows/windows_file_system.h    |  2 ++
- 27 files changed, 163 insertions(+), 43 deletions(-)
+ 29 files changed, 166 insertions(+), 44 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..c85fe98 100644
@@ -496,6 +498,19 @@ index 6f059c7..781a6bd 100644
      set (NSYNC_OS_SRC
        "platform/c++11/src/nsync_semaphore_mutex.cc"
        "platform/win32/src/clock_gettime.c"
+diff --git a/tensorflow/contrib/cmake/tf_core_kernels.cmake b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+index 844f626..3800f91 100644
+--- a/tensorflow/contrib/cmake/tf_core_kernels.cmake
++++ b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+@@ -221,7 +221,7 @@ add_library(tf_core_kernels OBJECT ${tf_core_kernels_srcs})
+ add_dependencies(tf_core_kernels tf_core_cpu)
+ 
+ if (WIN32)
+-  target_compile_options(tf_core_kernels PRIVATE /MP)
++  # target_compile_options(tf_core_kernels PRIVATE /MP)
+ endif (WIN32)
+ if (tensorflow_ENABLE_GPU)
+   set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
 index 32b185f..7f08318 100644
 --- a/tensorflow/contrib/cmake/tf_python.cmake
@@ -524,6 +539,19 @@ index 10a24ed..a00c9b9 100644
  
  #include <map>
  #include <utility>
+diff --git a/tensorflow/core/grappler/clusters/single_machine.cc b/tensorflow/core/grappler/clusters/single_machine.cc
+index b97603c..469fd00 100644
+--- a/tensorflow/core/grappler/clusters/single_machine.cc
++++ b/tensorflow/core/grappler/clusters/single_machine.cc
+@@ -33,6 +33,8 @@ limitations under the License.
+ #include "tensorflow/core/platform/types.h"
+ #include "tensorflow/core/public/session.h"
+ 
++inline void sleep(unsigned int seconds) { Sleep(1000*seconds); }
++
+ namespace tensorflow {
+ namespace grappler {
+ 
 diff --git a/tensorflow/core/platform/cpu_info.cc b/tensorflow/core/platform/cpu_info.cc
 index e9da3d8..adbd250 100644
 --- a/tensorflow/core/platform/cpu_info.cc
