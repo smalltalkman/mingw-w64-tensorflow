@@ -2,6 +2,7 @@
  .../contrib/cmake/external/double_conversion.cmake |  7 ++++++-
  tensorflow/contrib/cmake/external/farmhash.cmake   | 15 +++++++++++++-
  tensorflow/contrib/cmake/external/fft2d.cmake      |  7 ++++++-
+ tensorflow/contrib/cmake/external/gemmlowp.cmake   |  7 +++++++
  tensorflow/contrib/cmake/external/gif.cmake        |  7 ++++++-
  tensorflow/contrib/cmake/external/grpc.cmake       |  7 +++++++
  .../contrib/cmake/external/highwayhash.cmake       |  7 ++++++-
@@ -27,7 +28,7 @@
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 ++++
  .../core/platform/windows/windows_file_system.h    |  2 ++
- 29 files changed, 167 insertions(+), 44 deletions(-)
+ 30 files changed, 174 insertions(+), 44 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..c81c6d8 100644
@@ -147,6 +148,21 @@ index a7bc50d..8cc7bfb 100644
  
    ExternalProject_Add(fft2d
        PREFIX fft2d
+diff --git a/tensorflow/contrib/cmake/external/gemmlowp.cmake b/tensorflow/contrib/cmake/external/gemmlowp.cmake
+index cdaa6b7..47a9115 100644
+--- a/tensorflow/contrib/cmake/external/gemmlowp.cmake
++++ b/tensorflow/contrib/cmake/external/gemmlowp.cmake
+@@ -27,3 +27,10 @@ ExternalProject_Add(gemmlowp
+     BUILD_IN_SOURCE 1
+     PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/patches/gemmlowp/CMakeLists.txt ${gemmlowp_BUILD}
+     INSTALL_COMMAND "")
++
++ExternalProject_Add_Step(gemmlowp "copy_internal-platform.h"
++    COMMAND ${CMAKE_COMMAND} -E copy
++    ${CMAKE_SOURCE_DIR}/patches/gemmlowp/internal-platform.h ${gemmlowp_BUILD}/internal/platform.h
++    DEPENDEES patch
++    DEPENDERS build
++)
 diff --git a/tensorflow/contrib/cmake/external/gif.cmake b/tensorflow/contrib/cmake/external/gif.cmake
 index e1f8d13..8cfe885 100644
 --- a/tensorflow/contrib/cmake/external/gif.cmake

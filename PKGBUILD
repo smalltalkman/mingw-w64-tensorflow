@@ -14,6 +14,7 @@ source=(https://github.com/tensorflow/tensorflow/archive/v${pkgver}.tar.gz
         patches-nsync-platform-win32-src-pthread_key_win32.cc
         patches-grpc-CMakeLists.txt
         patches-png-CMakeLists.txt
+        patches-gemmlowp-internal-platform.h
         all.diff)
 sha256sums=('EE9CB98D9E0D8106F2F4ED52A38FE89399324AF303E1401567E5B64A9F86744B'
             '083AFEC53265F2E67940458146398B8CB061A4470BBFFA628DFC909B5A6A1EF4'
@@ -21,7 +22,8 @@ sha256sums=('EE9CB98D9E0D8106F2F4ED52A38FE89399324AF303E1401567E5B64A9F86744B'
             '1462F611AD4BF66BD181C9AD177A7C502CAEF5797DE22F38619C99CA3C65DC44'
             '6B3EBD1FD3932E6FD0103CFB525B3BDB3A3177C186E4E8F638F2682D4D76036D'
             '8C8858AD675D5D69520166265751F2EAAD48EA0EB36BE299F4743389E879FAD9'
-            '0ACBBED7ABEE76B3BF629C0D5233410997505993012824B0EF9CBBEB347480ED')
+            '8FF74F77FB5739238EDB66DF004FB8A7CE1B06085E00F34BA54F7BC93289C065'
+            '3EDEB7F99BE762217E953A70C9CC97DE07957544B2B98BDD1016CE00C75226E9')
 
 arch=('any')
 depends=()
@@ -50,6 +52,9 @@ prepare() {
   mkdir -p tensorflow/contrib/cmake/patches/farmhash
   cp -ubS.orig -p         ${srcdir}/MinGW-endian.h \
            tensorflow/contrib/cmake/patches/farmhash/MinGW-endian.h
+  mkdir -p tensorflow/contrib/cmake/patches/gemmlowp
+  cp -ubS.orig -p         ${srcdir}/patches-gemmlowp-internal-platform.h \
+           tensorflow/contrib/cmake/patches/gemmlowp/internal-platform.h
   patch -b -p1 -i ${srcdir}/all.diff
 }
 
