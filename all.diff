@@ -20,6 +20,7 @@
  .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 +++---
  .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 +++---
  .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++----
+ tensorflow/contrib/cmake/tf_cc_ops.cmake           |  8 +++--
  tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
  tensorflow/contrib/cmake/tf_python.cmake           | 40 +++++++++++++---------
  tensorflow/core/common_runtime/pool_allocator.cc   |  4 ---
@@ -28,7 +29,7 @@
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 +++
  .../core/platform/windows/windows_file_system.h    |  2 ++
- 30 files changed, 198 insertions(+), 62 deletions(-)
+ 31 files changed, 204 insertions(+), 64 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..ae64c3a 100644
@@ -97,14 +98,14 @@ index 5c5adaf..07d2ac6 100644
    set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/libdouble-conversion.a)
  endif()
 diff --git a/tensorflow/contrib/cmake/external/farmhash.cmake b/tensorflow/contrib/cmake/external/farmhash.cmake
-index d51569b..fbb85ed 100644
+index d51569b..724a6b7 100644
 --- a/tensorflow/contrib/cmake/external/farmhash.cmake
 +++ b/tensorflow/contrib/cmake/external/farmhash.cmake
 @@ -22,10 +22,16 @@ set(farmhash_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/farmhash/install)
  set(farmhash_INCLUDES ${farmhash_BUILD})
  set(farmhash_HEADERS
      "${farmhash_BUILD}/src/farmhash.h"
-+    "${farmhash_BUILD}/src/endian.h"
++    "${farmhash_BUILD}/endian.h"
  )
  
  if(WIN32)
@@ -124,7 +125,7 @@ index d51569b..fbb85ed 100644
  
 +ExternalProject_Add_Step(farmhash "copy_MinGW-endian.h"
 +    COMMAND ${CMAKE_COMMAND} -E copy
-+    ${CMAKE_SOURCE_DIR}/patches/farmhash/MinGW-endian.h ${farmhash_BUILD}/src/endian.h
++    ${CMAKE_SOURCE_DIR}/patches/farmhash/MinGW-endian.h ${farmhash_BUILD}/endian.h
 +    DEPENDEES patch
 +    DEPENDERS build
 +)
@@ -517,6 +518,38 @@ index 6f059c7..781a6bd 100644
      set (NSYNC_OS_SRC
        "platform/c++11/src/nsync_semaphore_mutex.cc"
        "platform/win32/src/clock_gettime.c"
+diff --git a/tensorflow/contrib/cmake/tf_cc_ops.cmake b/tensorflow/contrib/cmake/tf_cc_ops.cmake
+index 6c90cf3..4f6470f 100644
+--- a/tensorflow/contrib/cmake/tf_cc_ops.cmake
++++ b/tensorflow/contrib/cmake/tf_cc_ops.cmake
+@@ -151,6 +151,8 @@ add_dependencies(tf_cc tf_cc_framework tf_cc_ops)
+ if (WIN32)
+   if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+     set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow_internal.lib")
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal_static.a")
+   else()
+     set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow_internal.lib")
+   endif()
+@@ -187,14 +189,16 @@ function(AddUserOps)
+   get_target_property(target_compile_flags  ${_AT_TARGET} COMPILE_FLAGS)
+   if(target_compile_flags STREQUAL "target_compile_flags-NOTFOUND")
+     if (WIN32)
+-      set(target_compile_flags "/UTF_COMPILE_LIBRARY")
++      # set(target_compile_flags "/UTF_COMPILE_LIBRARY")
++      set(target_compile_flags "-finput-charset=UTF-8")
+     else (WIN32)
+       # gcc uses UTF as default
+       set(target_compile_flags "-finput-charset=UTF-8")
+     endif (WIN32)
+   else()
+     if (WIN32)
+-      set(target_compile_flags "${target_compile_flags} /UTF_COMPILE_LIBRARY")
++      # set(target_compile_flags "${target_compile_flags} /UTF_COMPILE_LIBRARY")
++      set(target_compile_flags "${target_compile_flags} -finput-charset=UTF-8")
+     else (WIN32)
+       # gcc uses UTF as default
+       set(target_compile_flags "${target_compile_flags} -finput-charset=UTF-8")
 diff --git a/tensorflow/contrib/cmake/tf_core_kernels.cmake b/tensorflow/contrib/cmake/tf_core_kernels.cmake
 index 844f626..3800f91 100644
 --- a/tensorflow/contrib/cmake/tf_core_kernels.cmake
