@@ -519,7 +519,7 @@ index 6f059c7..781a6bd 100644
        "platform/c++11/src/nsync_semaphore_mutex.cc"
        "platform/win32/src/clock_gettime.c"
 diff --git a/tensorflow/contrib/cmake/tf_cc_ops.cmake b/tensorflow/contrib/cmake/tf_cc_ops.cmake
-index 6c90cf3..4f6470f 100644
+index 6c90cf3..d358452 100644
 --- a/tensorflow/contrib/cmake/tf_cc_ops.cmake
 +++ b/tensorflow/contrib/cmake/tf_cc_ops.cmake
 @@ -151,6 +151,8 @@ add_dependencies(tf_cc tf_cc_framework tf_cc_ops)
@@ -527,7 +527,7 @@ index 6c90cf3..4f6470f 100644
    if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
      set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow_internal.lib")
 +  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
-+    set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal_static.a")
++    set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal.dll.a")
    else()
      set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow_internal.lib")
    endif()
