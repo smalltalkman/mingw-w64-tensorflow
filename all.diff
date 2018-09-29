@@ -1,35 +1,36 @@
- tensorflow/contrib/cmake/CMakeLists.txt            | 28 ++++++++++-----
- .../contrib/cmake/external/double_conversion.cmake |  7 +++-
- tensorflow/contrib/cmake/external/farmhash.cmake   | 15 +++++++-
- tensorflow/contrib/cmake/external/fft2d.cmake      |  7 +++-
- tensorflow/contrib/cmake/external/gemmlowp.cmake   |  7 ++++
- tensorflow/contrib/cmake/external/gif.cmake        |  7 +++-
- tensorflow/contrib/cmake/external/grpc.cmake       |  7 ++++
- .../contrib/cmake/external/highwayhash.cmake       |  7 +++-
- tensorflow/contrib/cmake/external/jpeg.cmake       |  7 +++-
+ tensorflow/contrib/cmake/CMakeLists.txt            | 28 +++++++++++++++-------
+ .../contrib/cmake/external/double_conversion.cmake |  7 +++++-
+ tensorflow/contrib/cmake/external/farmhash.cmake   | 15 +++++++++++-
+ tensorflow/contrib/cmake/external/fft2d.cmake      |  7 +++++-
+ tensorflow/contrib/cmake/external/gemmlowp.cmake   |  7 ++++++
+ tensorflow/contrib/cmake/external/gif.cmake        |  7 +++++-
+ tensorflow/contrib/cmake/external/grpc.cmake       |  7 ++++++
+ .../contrib/cmake/external/highwayhash.cmake       |  7 +++++-
+ tensorflow/contrib/cmake/external/jpeg.cmake       |  7 +++++-
  tensorflow/contrib/cmake/external/jsoncpp.cmake    |  2 ++
- tensorflow/contrib/cmake/external/lmdb.cmake       |  7 +++-
- tensorflow/contrib/cmake/external/nsync.cmake      | 21 +++++++++++-
- tensorflow/contrib/cmake/external/png.cmake        | 10 ++++++
- tensorflow/contrib/cmake/external/protobuf.cmake   |  9 +++++
+ tensorflow/contrib/cmake/external/lmdb.cmake       |  7 +++++-
+ tensorflow/contrib/cmake/external/nsync.cmake      | 21 +++++++++++++++-
+ tensorflow/contrib/cmake/external/png.cmake        | 10 ++++++++
+ tensorflow/contrib/cmake/external/protobuf.cmake   |  9 +++++++
  tensorflow/contrib/cmake/external/re2.cmake        |  2 ++
  tensorflow/contrib/cmake/external/snappy.cmake     |  2 ++
- tensorflow/contrib/cmake/external/sqlite.cmake     |  7 +++-
- tensorflow/contrib/cmake/external/zlib.cmake       |  8 +++++
- .../contrib/cmake/patches/gif/CMakeLists.txt       | 10 +++---
- .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 +++---
- .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 +++---
- .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++----
- tensorflow/contrib/cmake/tf_cc_ops.cmake           |  8 +++--
+ tensorflow/contrib/cmake/external/sqlite.cmake     |  7 +++++-
+ tensorflow/contrib/cmake/external/zlib.cmake       |  8 +++++++
+ .../contrib/cmake/patches/gif/CMakeLists.txt       | 10 ++++----
+ .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 ++++----
+ .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 ++++----
+ .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++++-----
+ tensorflow/contrib/cmake/tf_cc_ops.cmake           |  8 +++++--
  tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
- tensorflow/contrib/cmake/tf_python.cmake           | 40 +++++++++++++---------
- tensorflow/core/common_runtime/pool_allocator.cc   |  4 ---
+ tensorflow/contrib/cmake/tf_python.cmake           | 10 ++++++--
+ tensorflow/contrib/cmake/tools/create_def_file.py  | 25 +++++++++++--------
+ tensorflow/core/common_runtime/pool_allocator.cc   |  4 ----
  .../core/grappler/clusters/single_machine.cc       |  2 ++
  tensorflow/core/platform/cpu_info.cc               |  2 ++
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
- .../core/platform/windows/windows_file_system.cc   |  4 +++
+ .../core/platform/windows/windows_file_system.cc   |  4 ++++
  .../core/platform/windows/windows_file_system.h    |  2 ++
- 31 files changed, 204 insertions(+), 64 deletions(-)
+ 32 files changed, 204 insertions(+), 59 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..ae64c3a 100644
@@ -564,7 +565,7 @@ index 844f626..3800f91 100644
  if (tensorflow_ENABLE_GPU)
    set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
-index 32b185f..669dfbf 100644
+index 32b185f..46edcc3 100644
 --- a/tensorflow/contrib/cmake/tf_python.cmake
 +++ b/tensorflow/contrib/cmake/tf_python.cmake
 @@ -305,7 +305,7 @@ function(GENERATE_PYTHON_OP_LIB tf_python_op_lib_name)
@@ -576,52 +577,15 @@ index 32b185f..669dfbf 100644
        DEPENDS ${tf_python_op_lib_name}_gen_python
      )
  
-@@ -560,21 +560,21 @@ if(WIN32)
- 	${nsync_STATIC_LIBRARIES}
-     )
- 
--    if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
--        set(pywrap_tensorflow_deffile "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow.def")
--    else()
--        set(pywrap_tensorflow_deffile "${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow.def")
--    endif()
--    set_source_files_properties(${pywrap_tensorflow_deffile} PROPERTIES GENERATED TRUE)
--    math(EXPR tensorflow_target_bitness "${CMAKE_SIZEOF_VOID_P}*8")
--    add_custom_command(TARGET pywrap_tensorflow_internal_static POST_BUILD
--        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/create_def_file.py
+@@ -569,7 +569,7 @@ if(WIN32)
+     math(EXPR tensorflow_target_bitness "${CMAKE_SIZEOF_VOID_P}*8")
+     add_custom_command(TARGET pywrap_tensorflow_internal_static POST_BUILD
+         COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/create_def_file.py
 -            --input "${pywrap_tensorflow_internal_static_dependencies}"
--            --output "${pywrap_tensorflow_deffile}"
--            --target _pywrap_tensorflow_internal.pyd
--            --bitness "${tensorflow_target_bitness}"
--        BYPRODUCTS ${pywrap_tensorflow_deffile} # Required for Ninja
--    )
-+    # if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
-+        # set(pywrap_tensorflow_deffile "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow.def")
-+    # else()
-+        # set(pywrap_tensorflow_deffile "${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow.def")
-+    # endif()
-+    # set_source_files_properties(${pywrap_tensorflow_deffile} PROPERTIES GENERATED TRUE)
-+    # math(EXPR tensorflow_target_bitness "${CMAKE_SIZEOF_VOID_P}*8")
-+    # add_custom_command(TARGET pywrap_tensorflow_internal_static POST_BUILD
-+        # COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/create_def_file.py
-+            # --input "${pywrap_tensorflow_internal_static_dependencies}"
-+            # --output "${pywrap_tensorflow_deffile}"
-+            # --target _pywrap_tensorflow_internal.pyd
-+            # --bitness "${tensorflow_target_bitness}"
-+        # BYPRODUCTS ${pywrap_tensorflow_deffile} # Required for Ninja
-+    # )
- endif(WIN32)
- 
- # pywrap_tensorflow_internal is a shared library containing all of the
-@@ -599,7 +599,7 @@ add_library(pywrap_tensorflow_internal SHARED
-     $<TARGET_OBJECTS:tf_core_kernels>
-     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<$<BOOL:${BOOL_WIN32}>:$<TARGET_OBJECTS:tf_core_kernels_cpu_only>>>
-     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
--    ${pywrap_tensorflow_deffile}
-+    # ${pywrap_tensorflow_deffile}
- )
- 
- # There is a bug in GCC 5 resulting in undefined reference to a __cpu_model function when
++            --input "\"${pywrap_tensorflow_internal_static_dependencies}\""
+             --output "${pywrap_tensorflow_deffile}"
+             --target _pywrap_tensorflow_internal.pyd
+             --bitness "${tensorflow_target_bitness}"
 @@ -718,6 +718,12 @@ if(WIN32)
                                         ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow_internal.pyd
        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)/pywrap_tensorflow_internal.lib
@@ -635,6 +599,65 @@ index 32b185f..669dfbf 100644
    else()
      add_custom_command(TARGET pywrap_tensorflow_internal POST_BUILD
        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow_internal.dll
+diff --git a/tensorflow/contrib/cmake/tools/create_def_file.py b/tensorflow/contrib/cmake/tools/create_def_file.py
+index 4f957f1..62b8a33 100644
+--- a/tensorflow/contrib/cmake/tools/create_def_file.py
++++ b/tensorflow/contrib/cmake/tools/create_def_file.py
+@@ -107,13 +107,17 @@ def main():
+   candidates = []
+   tmpfile = tempfile.NamedTemporaryFile(mode="w", delete=False)
+   for lib_path in args.input:
+-    proc = subprocess.Popen([DUMPBIN, "/nologo", "/linkermember:1", lib_path],
++    # proc = subprocess.Popen([DUMPBIN, "/nologo", "/linkermember:1", lib_path],
++                            # stdout=subprocess.PIPE)
++    proc = subprocess.Popen(["nm", "--extern-only", "--defined-only", lib_path],
+                             stdout=subprocess.PIPE)
+     for line in codecs.getreader("utf-8")(proc.stdout):
+       cols = line.split()
+-      if len(cols) < 2:
++      # if len(cols) < 2:
++      if len(cols) < 3:
+         continue
+-      sym = cols[1]
++      # sym = cols[1]
++      sym = cols[2]
+       tmpfile.file.write(sym + "\n")
+       candidates.append(sym)
+     exit_code = proc.wait()
+@@ -131,15 +135,16 @@ def main():
+     # Header for the def file.
+     def_fp.write("LIBRARY " + args.target + "\n")
+     def_fp.write("EXPORTS\n")
+-    if args.bitness == "64":
+-      def_fp.write("\t??1OpDef@tensorflow@@UEAA@XZ\n")
+-    else:
+-      def_fp.write("\t??1OpDef@tensorflow@@UAE@XZ\n")
++    # if args.bitness == "64":
++      # def_fp.write("\t??1OpDef@tensorflow@@UEAA@XZ\n")
++    # else:
++      # def_fp.write("\t??1OpDef@tensorflow@@UAE@XZ\n")
+ 
+     # Each symbols returned by undname matches the same position in candidates.
+     # We compare on undname but use the decorated name from candidates.
+     dupes = 0
+-    proc = subprocess.Popen([UNDNAME, tmpfile.name], stdout=subprocess.PIPE)
++    # proc = subprocess.Popen([UNDNAME, tmpfile.name], stdout=subprocess.PIPE)
++    proc = subprocess.Popen(["c++filt", "@%s"%tmpfile.name], stdout=subprocess.PIPE)
+     for idx, line in enumerate(codecs.getreader("utf-8")(proc.stdout)):
+       decorated = candidates[idx]
+       if decorated in taken:
+@@ -160,9 +165,9 @@ def main():
+         continue
+ 
+       if DATA_EXCLUDE_RE.search(line):
+-        def_fp.write("\t" + decorated + "\n")
++        def_fp.write("\t" + decorated[1:] + "\n")
+       else:
+-        def_fp.write("\t" + decorated + " DATA\n")
++        def_fp.write("\t" + decorated[1:] + " DATA\n")
+       taken.add(decorated)
+   exit_code = proc.wait()
+   if exit_code != 0:
 diff --git a/tensorflow/core/common_runtime/pool_allocator.cc b/tensorflow/core/common_runtime/pool_allocator.cc
 index 10a24ed..a00c9b9 100644
 --- a/tensorflow/core/common_runtime/pool_allocator.cc
