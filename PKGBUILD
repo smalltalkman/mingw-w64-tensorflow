@@ -63,7 +63,7 @@ build() {
   mkdir -p cmake_build
   cd cmake_build
   cmake -G "MSYS Makefiles" ../tensorflow/contrib/cmake
-  make -j1
+  make
 }
 
 package() {
