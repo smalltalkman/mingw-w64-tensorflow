@@ -62,12 +62,12 @@ build() {
   cd "${srcdir}/tensorflow-${pkgver}"
   mkdir -p cmake_build
   cd cmake_build
-  cmake -G "MSYS Makefiles" ../tensorflow/contrib/cmake
+  cmake -G "MSYS Makefiles" -DCMAKE_INSTALL_PREFIX:PATH="${pkgdir}${MINGW_PREFIX}" ../tensorflow/contrib/cmake
   make
 }
 
 package() {
   cd "${srcdir}/tensorflow-${pkgver}"
   cd cmake_build
-  make DESTDIR="${pkgdir}/" install
+  make install
 }
