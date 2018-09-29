@@ -69,5 +69,5 @@ build() {
 package() {
   cd "${srcdir}/tensorflow-${pkgver}"
   cd cmake_build
-  make install
+  make install/fast
 }
