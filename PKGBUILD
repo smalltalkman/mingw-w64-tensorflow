@@ -62,8 +62,11 @@ build() {
   cd "${srcdir}/tensorflow-${pkgver}"
   mkdir -p cmake_build
   cd cmake_build
-  cmake -G "MSYS Makefiles" ../tensorflow/contrib/cmake
+  cmake -G "MSYS Makefiles" \
+        -Dtensorflow_BUILD_SHARED_LIB=ON \
+        ../tensorflow/contrib/cmake
   make
+  # make tf_python_build_pip_package/fast
 }
 
 package() {
