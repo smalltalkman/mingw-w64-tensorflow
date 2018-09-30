@@ -23,6 +23,7 @@
  tensorflow/contrib/cmake/tf_cc_ops.cmake           |  8 +++++--
  tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
  tensorflow/contrib/cmake/tf_python.cmake           | 10 ++++++--
+ tensorflow/contrib/cmake/tf_shared_lib.cmake       |  2 +-
  tensorflow/contrib/cmake/tools/create_def_file.py  | 25 +++++++++++--------
  tensorflow/core/common_runtime/pool_allocator.cc   |  4 ----
  .../core/grappler/clusters/single_machine.cc       |  2 ++
@@ -30,7 +31,7 @@
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 ++++
  .../core/platform/windows/windows_file_system.h    |  2 ++
- 32 files changed, 204 insertions(+), 59 deletions(-)
+ 33 files changed, 205 insertions(+), 60 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..ae64c3a 100644
@@ -599,6 +600,19 @@ index 32b185f..46edcc3 100644
    else()
      add_custom_command(TARGET pywrap_tensorflow_internal POST_BUILD
        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow_internal.dll
+diff --git a/tensorflow/contrib/cmake/tf_shared_lib.cmake b/tensorflow/contrib/cmake/tf_shared_lib.cmake
+index fdf522f..05e0c79 100644
+--- a/tensorflow/contrib/cmake/tf_shared_lib.cmake
++++ b/tensorflow/contrib/cmake/tf_shared_lib.cmake
+@@ -55,7 +55,7 @@ if(WIN32)
+   math(EXPR tensorflow_target_bitness "${CMAKE_SIZEOF_VOID_P}*8")
+   add_custom_command(TARGET tensorflow_static POST_BUILD
+       COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/create_def_file.py
+-          --input "${tensorflow_static_dependencies}"
++          --input "\"${tensorflow_static_dependencies}\""
+           --output "${tensorflow_deffile}"
+           --target tensorflow.dll
+           --bitness "${tensorflow_target_bitness}"
 diff --git a/tensorflow/contrib/cmake/tools/create_def_file.py b/tensorflow/contrib/cmake/tools/create_def_file.py
 index 4f957f1..62b8a33 100644
 --- a/tensorflow/contrib/cmake/tools/create_def_file.py
