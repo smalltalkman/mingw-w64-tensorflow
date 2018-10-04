@@ -64,12 +64,9 @@ build() {
   cd cmake_build
   cmake -G "MSYS Makefiles" \
         -Dtensorflow_BUILD_SHARED_LIB=ON \
-        -Dtensorflow_BUILD_CC_TESTS=ON \
-        -Dtensorflow_BUILD_PYTHON_TESTS=ON \
         ../tensorflow/contrib/cmake
   make
   # make tf_python_build_pip_package/fast
-  # make test
 }
 
 package() {
