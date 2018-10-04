@@ -4,6 +4,7 @@
  tensorflow/contrib/cmake/external/fft2d.cmake      |  7 +++++-
  tensorflow/contrib/cmake/external/gemmlowp.cmake   |  7 ++++++
  tensorflow/contrib/cmake/external/gif.cmake        |  7 +++++-
+ tensorflow/contrib/cmake/external/googletest.cmake |  4 ++++
  tensorflow/contrib/cmake/external/grpc.cmake       |  7 ++++++
  .../contrib/cmake/external/highwayhash.cmake       |  7 +++++-
  tensorflow/contrib/cmake/external/jpeg.cmake       |  7 +++++-
@@ -31,7 +32,7 @@
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 ++++
  .../core/platform/windows/windows_file_system.h    |  2 ++
- 33 files changed, 205 insertions(+), 60 deletions(-)
+ 34 files changed, 209 insertions(+), 60 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..ae64c3a 100644
@@ -186,6 +187,26 @@ index e1f8d13..8cfe885 100644
  
    ExternalProject_Add(gif
        PREFIX gif
+diff --git a/tensorflow/contrib/cmake/external/googletest.cmake b/tensorflow/contrib/cmake/external/googletest.cmake
+index 7cc5ae6..9f00550 100644
+--- a/tensorflow/contrib/cmake/external/googletest.cmake
++++ b/tensorflow/contrib/cmake/external/googletest.cmake
+@@ -23,6 +23,9 @@ if(WIN32)
+   if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+     set(googletest_STATIC_LIBRARIES
+         ${CMAKE_CURRENT_BINARY_DIR}/googletest/src/googletest/googletest/$(Configuration)/gtest.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(googletest_STATIC_LIBRARIES
++        ${CMAKE_CURRENT_BINARY_DIR}/googletest/src/googletest/googletest/libgtest.a)
+   else()
+     set(googletest_STATIC_LIBRARIES
+         ${CMAKE_CURRENT_BINARY_DIR}/googletest/src/googletest/googletest/gtest.lib)
+@@ -46,4 +49,5 @@ ExternalProject_Add(googletest
+         -DBUILD_GMOCK:BOOL=OFF
+         -DBUILD_GTEST:BOOL=ON
+         -Dgtest_force_shared_crt:BOOL=ON
++        -Dgtest_disable_pthreads:BOOL=ON
+ )
 diff --git a/tensorflow/contrib/cmake/external/grpc.cmake b/tensorflow/contrib/cmake/external/grpc.cmake
 index b1e64aa..1721e91 100644
 --- a/tensorflow/contrib/cmake/external/grpc.cmake
