@@ -74,4 +74,7 @@ package() {
   cd cmake_build
   # make install/fast
   cmake -DCMAKE_INSTALL_PREFIX:PATH="${pkgdir}${MINGW_PREFIX}" -P cmake_install.cmake
+  cd tf_python
+  MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
+    python setup.py --quiet install --prefix=${MINGW_PREFIX} --root="${pkgdir}" --optimize=1
 }
