@@ -65,8 +65,8 @@ build() {
   cmake -G "MSYS Makefiles" \
         -Dtensorflow_BUILD_SHARED_LIB=ON \
         ../tensorflow/contrib/cmake
-  make
-  # make tf_python_build_pip_package/fast
+  make -j1
+  make tf_python_build_pip_package/fast
 }
 
 package() {
