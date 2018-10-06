@@ -62,7 +62,9 @@ build() {
   cd "${srcdir}/tensorflow-${pkgver}"
   mkdir -p cmake_build
   cd cmake_build
+  rm -f CMakeCache.txt cmake_install.cmake
   cmake -G "MSYS Makefiles" \
+        -Dtensorflow_BUILD_PYTHON_BINDINGS=OFF \
         -Dtensorflow_BUILD_SHARED_LIB=ON \
         ../tensorflow/contrib/cmake
   make -j1
