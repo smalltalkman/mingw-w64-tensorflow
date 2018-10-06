@@ -66,7 +66,7 @@ build() {
         -Dtensorflow_BUILD_SHARED_LIB=ON \
         ../tensorflow/contrib/cmake
   make -j1
-  make tf_python_build_pip_package/fast
+  # make tf_python_build_pip_package/fast
 }
 
 package() {
@@ -74,7 +74,7 @@ package() {
   cd cmake_build
   # make install/fast
   cmake -DCMAKE_INSTALL_PREFIX:PATH="${pkgdir}${MINGW_PREFIX}" -P cmake_install.cmake
-  cd tf_python
-  MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
-    python setup.py --quiet install --prefix=${MINGW_PREFIX} --root="${pkgdir}" --optimize=1
+  # cd tf_python
+  # MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
+  #   python setup.py --quiet install --prefix=${MINGW_PREFIX} --root="${pkgdir}" --optimize=1
 }
