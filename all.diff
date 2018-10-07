@@ -25,6 +25,7 @@
  tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
  tensorflow/contrib/cmake/tf_python.cmake           | 10 ++++++--
  tensorflow/contrib/cmake/tf_shared_lib.cmake       |  2 +-
+ tensorflow/contrib/cmake/tf_tests.cmake            |  2 ++
  tensorflow/contrib/cmake/tools/create_def_file.py  | 25 +++++++++++--------
  tensorflow/core/common_runtime/pool_allocator.cc   |  4 ----
  .../core/grappler/clusters/single_machine.cc       |  2 ++
@@ -32,7 +33,7 @@
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 ++++
  .../core/platform/windows/windows_file_system.h    |  2 ++
- 34 files changed, 209 insertions(+), 60 deletions(-)
+ 35 files changed, 211 insertions(+), 60 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..ae64c3a 100644
@@ -634,6 +635,22 @@ index fdf522f..05e0c79 100644
            --output "${tensorflow_deffile}"
            --target tensorflow.dll
            --bitness "${tensorflow_target_bitness}"
+diff --git a/tensorflow/contrib/cmake/tf_tests.cmake b/tensorflow/contrib/cmake/tf_tests.cmake
+index b2330c4..2895070 100644
+--- a/tensorflow/contrib/cmake/tf_tests.cmake
++++ b/tensorflow/contrib/cmake/tf_tests.cmake
+@@ -504,9 +504,11 @@ if (tensorflow_BUILD_CC_TESTS)
+     $<TARGET_OBJECTS:tf_core_cpu>
+     $<TARGET_OBJECTS:tf_core_framework>
+     $<TARGET_OBJECTS:tf_core_kernels>
++    $<TARGET_OBJECTS:tf_core_profiler>
+     $<TARGET_OBJECTS:tf_cc>
+     $<TARGET_OBJECTS:tf_cc_framework>
+     $<TARGET_OBJECTS:tf_cc_ops>
++    $<TARGET_OBJECTS:tf_cc_while_loop>
+     $<TARGET_OBJECTS:tf_core_ops>
+     $<TARGET_OBJECTS:tf_core_direct_session>
+     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
 diff --git a/tensorflow/contrib/cmake/tools/create_def_file.py b/tensorflow/contrib/cmake/tools/create_def_file.py
 index 4f957f1..62b8a33 100644
 --- a/tensorflow/contrib/cmake/tools/create_def_file.py
