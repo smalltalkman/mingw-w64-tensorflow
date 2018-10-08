@@ -6,7 +6,7 @@
  tensorflow/contrib/cmake/external/gif.cmake        |  7 ++-
  tensorflow/contrib/cmake/external/googletest.cmake |  4 ++
  tensorflow/contrib/cmake/external/grpc.cmake       |  7 +++
- .../contrib/cmake/external/highwayhash.cmake       |  7 ++-
+ .../contrib/cmake/external/highwayhash.cmake       | 34 ++++++++++++---
  tensorflow/contrib/cmake/external/jpeg.cmake       |  7 ++-
  tensorflow/contrib/cmake/external/jsoncpp.cmake    |  2 +
  tensorflow/contrib/cmake/external/lmdb.cmake       |  7 ++-
@@ -34,7 +34,7 @@
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 ++
  .../core/platform/windows/windows_file_system.h    |  2 +
- 36 files changed, 249 insertions(+), 67 deletions(-)
+ 36 files changed, 272 insertions(+), 71 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..ae64c3a 100644
@@ -235,14 +235,16 @@ index b1e64aa..1721e91 100644
      COMMAND ${CMAKE_COMMAND} --build . --config Release --target grpc_cpp_plugin
      INSTALL_COMMAND ""
 diff --git a/tensorflow/contrib/cmake/external/highwayhash.cmake b/tensorflow/contrib/cmake/external/highwayhash.cmake
-index a6e8a38..1a47c4b 100644
+index a6e8a38..f8128b9 100644
 --- a/tensorflow/contrib/cmake/external/highwayhash.cmake
 +++ b/tensorflow/contrib/cmake/external/highwayhash.cmake
-@@ -30,7 +30,12 @@ add_custom_target(highwayhash_copy_headers_to_destination
+@@ -29,13 +29,32 @@ add_custom_target(highwayhash_copy_headers_to_destination
+     DEPENDS highwayhash_create_destination_dir)
  
  if(WIN32)
-   set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
+-  set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
 -  set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/highwayhash.lib)
++  # set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
 +  # set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/highwayhash.lib)
 +  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
 +    set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/libhighwayhash.a)
@@ -250,8 +252,41 @@ index a6e8a38..1a47c4b 100644
 +    set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/highwayhash.lib)
 +  endif()
  else()
-   set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
+-  set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
++  # set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
    set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/libhighwayhash.a)
+ endif()
+ 
++set(highwayhash_HEADERS
++    "${highwayhash_BUILD}/highwayhash/code_annotation.h"
++    "${highwayhash_BUILD}/highwayhash/highway_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/scalar_highway_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/scalar_sip_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/sip_hash.h"
++    "${highwayhash_BUILD}/highwayhash/sip_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/sse41_highway_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/state_helpers.h"
++    "${highwayhash_BUILD}/highwayhash/types.h"
++    "${highwayhash_BUILD}/highwayhash/vec.h"
++    "${highwayhash_BUILD}/highwayhash/vec2.h"
++)
++
+ ExternalProject_Add(highwayhash
+     PREFIX highwayhash
+     GIT_REPOSITORY ${highwayhash_URL}
+@@ -50,5 +69,10 @@ ExternalProject_Add(highwayhash
+         -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+         -DCMAKE_INSTALL_PREFIX:STRING=${highwayhash_INSTALL})
+ 
+-add_custom_command(TARGET highwayhash_copy_headers_to_destination PRE_BUILD
+-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${highwayhash_INSTALL}/include/ ${highwayhash_INCLUDE_DIR}/highwayhash)
++# add_custom_command(TARGET highwayhash_copy_headers_to_destination PRE_BUILD
++    # COMMAND ${CMAKE_COMMAND} -E copy_directory ${highwayhash_INSTALL}/include/ ${highwayhash_INCLUDE_DIR}/highwayhash)
++
++foreach(header_file ${highwayhash_HEADERS})
++    add_custom_command(TARGET highwayhash_copy_headers_to_destination PRE_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header_file} ${highwayhash_INCLUDE_DIR}/highwayhash)
++endforeach()
 diff --git a/tensorflow/contrib/cmake/external/jpeg.cmake b/tensorflow/contrib/cmake/external/jpeg.cmake
 index c1c5842..dd9844f 100644
 --- a/tensorflow/contrib/cmake/external/jpeg.cmake
