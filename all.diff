@@ -1,39 +1,40 @@
- tensorflow/contrib/cmake/CMakeLists.txt            | 28 +++++++++++++++-------
- .../contrib/cmake/external/double_conversion.cmake |  7 +++++-
- tensorflow/contrib/cmake/external/farmhash.cmake   | 15 +++++++++++-
- tensorflow/contrib/cmake/external/fft2d.cmake      |  7 +++++-
- tensorflow/contrib/cmake/external/gemmlowp.cmake   |  7 ++++++
- tensorflow/contrib/cmake/external/gif.cmake        |  7 +++++-
- tensorflow/contrib/cmake/external/googletest.cmake |  4 ++++
- tensorflow/contrib/cmake/external/grpc.cmake       |  7 ++++++
- .../contrib/cmake/external/highwayhash.cmake       |  7 +++++-
- tensorflow/contrib/cmake/external/jpeg.cmake       |  7 +++++-
- tensorflow/contrib/cmake/external/jsoncpp.cmake    |  2 ++
- tensorflow/contrib/cmake/external/lmdb.cmake       |  7 +++++-
- tensorflow/contrib/cmake/external/nsync.cmake      | 21 +++++++++++++++-
- tensorflow/contrib/cmake/external/png.cmake        | 10 ++++++++
- tensorflow/contrib/cmake/external/protobuf.cmake   |  9 +++++++
- tensorflow/contrib/cmake/external/re2.cmake        |  2 ++
- tensorflow/contrib/cmake/external/snappy.cmake     |  2 ++
- tensorflow/contrib/cmake/external/sqlite.cmake     |  7 +++++-
- tensorflow/contrib/cmake/external/zlib.cmake       |  8 +++++++
- .../contrib/cmake/patches/gif/CMakeLists.txt       | 10 ++++----
- .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 ++++----
- .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 ++++----
- .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++++-----
- tensorflow/contrib/cmake/tf_cc_ops.cmake           |  8 +++++--
+ tensorflow/contrib/cmake/CMakeLists.txt            | 28 ++++++++----
+ .../contrib/cmake/external/double_conversion.cmake |  7 ++-
+ tensorflow/contrib/cmake/external/farmhash.cmake   | 15 ++++++-
+ tensorflow/contrib/cmake/external/fft2d.cmake      |  7 ++-
+ tensorflow/contrib/cmake/external/gemmlowp.cmake   |  7 +++
+ tensorflow/contrib/cmake/external/gif.cmake        |  7 ++-
+ tensorflow/contrib/cmake/external/googletest.cmake |  4 ++
+ tensorflow/contrib/cmake/external/grpc.cmake       |  7 +++
+ .../contrib/cmake/external/highwayhash.cmake       |  7 ++-
+ tensorflow/contrib/cmake/external/jpeg.cmake       |  7 ++-
+ tensorflow/contrib/cmake/external/jsoncpp.cmake    |  2 +
+ tensorflow/contrib/cmake/external/lmdb.cmake       |  7 ++-
+ tensorflow/contrib/cmake/external/nsync.cmake      | 50 +++++++++++++++++++---
+ tensorflow/contrib/cmake/external/png.cmake        | 10 +++++
+ tensorflow/contrib/cmake/external/protobuf.cmake   |  9 ++++
+ tensorflow/contrib/cmake/external/re2.cmake        |  2 +
+ tensorflow/contrib/cmake/external/snappy.cmake     |  2 +
+ tensorflow/contrib/cmake/external/sqlite.cmake     |  7 ++-
+ tensorflow/contrib/cmake/external/zlib.cmake       |  8 ++++
+ .../contrib/cmake/patches/gif/CMakeLists.txt       | 10 ++---
+ .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 ++---
+ .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 ++---
+ .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++---
+ tensorflow/contrib/cmake/tf_cc_ops.cmake           |  8 +++-
+ tensorflow/contrib/cmake/tf_core_framework.cmake   |  8 +++-
  tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
- tensorflow/contrib/cmake/tf_python.cmake           | 10 ++++++--
+ tensorflow/contrib/cmake/tf_python.cmake           | 10 ++++-
  tensorflow/contrib/cmake/tf_shared_lib.cmake       |  2 +-
- tensorflow/contrib/cmake/tf_tests.cmake            |  2 ++
- tensorflow/contrib/cmake/tools/create_def_file.py  | 25 +++++++++++--------
- tensorflow/core/common_runtime/pool_allocator.cc   |  4 ----
- .../core/grappler/clusters/single_machine.cc       |  2 ++
- tensorflow/core/platform/cpu_info.cc               |  2 ++
+ tensorflow/contrib/cmake/tf_tests.cmake            | 10 ++++-
+ tensorflow/contrib/cmake/tools/create_def_file.py  | 25 ++++++-----
+ tensorflow/core/common_runtime/pool_allocator.cc   |  4 --
+ .../core/grappler/clusters/single_machine.cc       |  2 +
+ tensorflow/core/platform/cpu_info.cc               |  2 +
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
- .../core/platform/windows/windows_file_system.cc   |  4 ++++
- .../core/platform/windows/windows_file_system.h    |  2 ++
- 35 files changed, 211 insertions(+), 60 deletions(-)
+ .../core/platform/windows/windows_file_system.cc   |  4 ++
+ .../core/platform/windows/windows_file_system.h    |  2 +
+ 36 files changed, 249 insertions(+), 67 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..ae64c3a 100644
@@ -301,14 +302,16 @@ index ed5ab78..2bc5193 100644
      set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/liblmdb.a)
  endif()
 diff --git a/tensorflow/contrib/cmake/external/nsync.cmake b/tensorflow/contrib/cmake/external/nsync.cmake
-index eba3bcf..87111c0 100644
+index eba3bcf..66930ba 100644
 --- a/tensorflow/contrib/cmake/external/nsync.cmake
 +++ b/tensorflow/contrib/cmake/external/nsync.cmake
-@@ -30,7 +30,12 @@ add_custom_target(nsync_copy_headers_to_destination
+@@ -29,13 +29,34 @@ add_custom_target(nsync_copy_headers_to_destination
+     DEPENDS nsync_create_destination_dir)
  
  if(WIN32)
-   set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
+-  set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
 -  set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/nsync.lib)
++  # set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
 +  # set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/nsync.lib)
 +  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
 +    set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/libnsync.a)
@@ -316,12 +319,36 @@ index eba3bcf..87111c0 100644
 +    set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/nsync.lib)
 +  endif()
  else()
-   set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
+-  set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
++  # set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
    set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/libnsync.a)
-@@ -51,5 +56,19 @@ ExternalProject_Add(nsync
+ endif()
+ 
++set(nsync_HEADERS
++    "${nsync_BUILD}/public/nsync.h"
++    "${nsync_BUILD}/public/nsync_atomic.h"
++    "${nsync_BUILD}/public/nsync_counter.h"
++    "${nsync_BUILD}/public/nsync_cpp.h"
++    "${nsync_BUILD}/public/nsync_cv.h"
++    "${nsync_BUILD}/public/nsync_debug.h"
++    "${nsync_BUILD}/public/nsync_mu.h"
++    "${nsync_BUILD}/public/nsync_mu_wait.h"
++    "${nsync_BUILD}/public/nsync_note.h"
++    "${nsync_BUILD}/public/nsync_once.h"
++    "${nsync_BUILD}/public/nsync_time.h"
++    "${nsync_BUILD}/public/nsync_time_internal.h"
++    "${nsync_BUILD}/public/nsync_waiter.h"
++)
++
+ ExternalProject_Add(nsync
+     PREFIX nsync
+     GIT_REPOSITORY ${nsync_URL}
+@@ -51,5 +72,24 @@ ExternalProject_Add(nsync
          -DCMAKE_INSTALL_PREFIX:STRING=${nsync_INSTALL}
  	-DNSYNC_LANGUAGE:STRING=c++11)
  
+-add_custom_command(TARGET nsync_copy_headers_to_destination PRE_BUILD
+-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${nsync_INSTALL}/include/ ${nsync_INCLUDE_DIR}/)
 +ExternalProject_Add_Step(nsync "copy_platform-win32-platform_c++11_os.h"
 +    COMMAND ${CMAKE_COMMAND} -E copy
 +    ${CMAKE_SOURCE_DIR}/patches/nsync/platform-win32-platform_c++11_os.h ${nsync_BUILD}/platform/win32/platform_c++11_os.h
@@ -336,8 +363,13 @@ index eba3bcf..87111c0 100644
 +    DEPENDERS build
 +)
 +
- add_custom_command(TARGET nsync_copy_headers_to_destination PRE_BUILD
-     COMMAND ${CMAKE_COMMAND} -E copy_directory ${nsync_INSTALL}/include/ ${nsync_INCLUDE_DIR}/)
++# add_custom_command(TARGET nsync_copy_headers_to_destination PRE_BUILD
++    # COMMAND ${CMAKE_COMMAND} -E copy_directory ${nsync_INSTALL}/include/ ${nsync_INCLUDE_DIR}/)
++
++foreach(header_file ${nsync_HEADERS})
++    add_custom_command(TARGET nsync_copy_headers_to_destination PRE_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header_file} ${nsync_INCLUDE_DIR})
++endforeach()
 diff --git a/tensorflow/contrib/cmake/external/png.cmake b/tensorflow/contrib/cmake/external/png.cmake
 index ad2af01..f12bcb6 100644
 --- a/tensorflow/contrib/cmake/external/png.cmake
@@ -574,6 +606,27 @@ index 6c90cf3..d358452 100644
      else (WIN32)
        # gcc uses UTF as default
        set(target_compile_flags "${target_compile_flags} -finput-charset=UTF-8")
+diff --git a/tensorflow/contrib/cmake/tf_core_framework.cmake b/tensorflow/contrib/cmake/tf_core_framework.cmake
+index 067c299..239ed91 100644
+--- a/tensorflow/contrib/cmake/tf_core_framework.cmake
++++ b/tensorflow/contrib/cmake/tf_core_framework.cmake
+@@ -262,10 +262,14 @@ set(VERSION_INFO_CC ${tensorflow_source_dir}/tensorflow/core/util/version_info.c
+ add_custom_target(force_rebuild_target ALL DEPENDS ${VERSION_INFO_CC})
+ add_custom_command(OUTPUT __force_rebuild COMMAND ${CMAKE_COMMAND} -E echo)
+ add_custom_command(OUTPUT
+-    ${VERSION_INFO_CC}
++    ${VERSION_INFO_CC}.tmp
+     COMMAND ${PYTHON_EXECUTABLE} ${tensorflow_source_dir}/tensorflow/tools/git/gen_git_source.py
+-    ARGS --raw_generate ${VERSION_INFO_CC} --source_dir ${tensorflow_source_dir} --git_tag_override=${GIT_TAG_OVERRIDE}
++    ARGS --raw_generate ${VERSION_INFO_CC}.tmp --source_dir ${tensorflow_source_dir} --git_tag_override=${GIT_TAG_OVERRIDE}
+     DEPENDS __force_rebuild)
++add_custom_command(OUTPUT
++    ${VERSION_INFO_CC}
++    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${VERSION_INFO_CC}.tmp ${VERSION_INFO_CC}
++    DEPENDS ${VERSION_INFO_CC}.tmp)
+ set(tf_version_srcs ${tensorflow_source_dir}/tensorflow/core/util/version_info.cc)
+ 
+ ########################################################
 diff --git a/tensorflow/contrib/cmake/tf_core_kernels.cmake b/tensorflow/contrib/cmake/tf_core_kernels.cmake
 index 844f626..3800f91 100644
 --- a/tensorflow/contrib/cmake/tf_core_kernels.cmake
@@ -636,10 +689,33 @@ index fdf522f..05e0c79 100644
            --target tensorflow.dll
            --bitness "${tensorflow_target_bitness}"
 diff --git a/tensorflow/contrib/cmake/tf_tests.cmake b/tensorflow/contrib/cmake/tf_tests.cmake
-index b2330c4..2895070 100644
+index b2330c4..b64f09d 100644
 --- a/tensorflow/contrib/cmake/tf_tests.cmake
 +++ b/tensorflow/contrib/cmake/tf_tests.cmake
-@@ -504,9 +504,11 @@ if (tensorflow_BUILD_CC_TESTS)
+@@ -34,6 +34,11 @@ function(GetTestRunPath VAR_NAME OBJ_NAME)
+     set(${VAR_NAME} "${TMPDIR}/${OBJ_NAME}" PARENT_SCOPE)
+ endfunction(GetTestRunPath)
+ 
++#
++# Build all tests.
++#
++add_custom_target(tf_build_all_tests)
++
+ #
+ # create test for each source
+ #
+@@ -70,8 +75,9 @@ function(AddTest)
+     list(REMOVE_DUPLICATES _AT_DEPENDS)
+   endif(_AT_DEPENDS)
+ 
+-  add_executable(${_AT_TARGET} ${_AT_SOURCES} ${_AT_OBJECTS})
++  add_executable(${_AT_TARGET} EXCLUDE_FROM_ALL ${_AT_SOURCES} ${_AT_OBJECTS})
+   target_link_libraries(${_AT_TARGET} ${_AT_LIBS})
++  add_dependencies(tf_build_all_tests ${_AT_TARGET})
+ 
+   GetTestRunPath(testdir ${_AT_TARGET})
+   set(tempdir "${testdir}/tmp")
+@@ -504,9 +510,11 @@ if (tensorflow_BUILD_CC_TESTS)
      $<TARGET_OBJECTS:tf_core_cpu>
      $<TARGET_OBJECTS:tf_core_framework>
      $<TARGET_OBJECTS:tf_core_kernels>
