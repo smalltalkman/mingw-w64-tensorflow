@@ -26,7 +26,7 @@
  tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
  tensorflow/contrib/cmake/tf_python.cmake           | 10 ++++-
  tensorflow/contrib/cmake/tf_shared_lib.cmake       |  2 +-
- tensorflow/contrib/cmake/tf_tests.cmake            | 32 +++++++++++++-
+ tensorflow/contrib/cmake/tf_tests.cmake            | 34 ++++++++++++++-
  tensorflow/contrib/cmake/tools/create_def_file.py  | 25 ++++++-----
  tensorflow/core/common_runtime/pool_allocator.cc   |  4 --
  .../core/grappler/clusters/single_machine.cc       |  2 +
@@ -34,7 +34,7 @@
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 ++
  .../core/platform/windows/windows_file_system.h    |  2 +
- 36 files changed, 294 insertions(+), 71 deletions(-)
+ 36 files changed, 295 insertions(+), 72 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..ae64c3a 100644
@@ -724,7 +724,7 @@ index fdf522f..05e0c79 100644
            --target tensorflow.dll
            --bitness "${tensorflow_target_bitness}"
 diff --git a/tensorflow/contrib/cmake/tf_tests.cmake b/tensorflow/contrib/cmake/tf_tests.cmake
-index b2330c4..e1177cc 100644
+index b2330c4..45f51e2 100644
 --- a/tensorflow/contrib/cmake/tf_tests.cmake
 +++ b/tensorflow/contrib/cmake/tf_tests.cmake
 @@ -34,6 +34,11 @@ function(GetTestRunPath VAR_NAME OBJ_NAME)
@@ -786,6 +786,15 @@ index b2330c4..e1177cc 100644
    endif()
  
    # Tests for saved_model require data, so need to treat them separately.
+@@ -495,7 +523,7 @@ if (tensorflow_BUILD_CC_TESTS)
+   )
+ 
+   set(tf_test_lib tf_test_lib)
+-  add_library(${tf_test_lib} STATIC ${tf_src_testlib})
++  add_library(${tf_test_lib} STATIC EXCLUDE_FROM_ALL ${tf_src_testlib})
+ 
+   # this is giving to much objects and libraries to the linker but
+   # it makes this script much easier. So for now we do it this way.
 @@ -504,9 +532,11 @@ if (tensorflow_BUILD_CC_TESTS)
      $<TARGET_OBJECTS:tf_core_cpu>
      $<TARGET_OBJECTS:tf_core_framework>
