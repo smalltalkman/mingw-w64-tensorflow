@@ -69,6 +69,7 @@ build() {
         -Dtensorflow_BUILD_CC_TESTS=ON \
         ../tensorflow/contrib/cmake
   make -j1
+  # make tf_build_all_tests
   # make test
   # make tf_python_build_pip_package/fast
 }
