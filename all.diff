@@ -26,7 +26,7 @@
  tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
  tensorflow/contrib/cmake/tf_python.cmake           | 10 ++++-
  tensorflow/contrib/cmake/tf_shared_lib.cmake       |  2 +-
- tensorflow/contrib/cmake/tf_tests.cmake            | 24 ++++++++++-
+ tensorflow/contrib/cmake/tf_tests.cmake            | 32 +++++++++++++-
  tensorflow/contrib/cmake/tools/create_def_file.py  | 25 ++++++-----
  tensorflow/core/common_runtime/pool_allocator.cc   |  4 --
  .../core/grappler/clusters/single_machine.cc       |  2 +
@@ -34,7 +34,7 @@
  tensorflow/core/platform/windows/env_time.cc       |  2 +-
  .../core/platform/windows/windows_file_system.cc   |  4 ++
  .../core/platform/windows/windows_file_system.h    |  2 +
- 36 files changed, 286 insertions(+), 71 deletions(-)
+ 36 files changed, 294 insertions(+), 71 deletions(-)
 
 diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
 index a0a5b0e..ae64c3a 100644
@@ -724,7 +724,7 @@ index fdf522f..05e0c79 100644
            --target tensorflow.dll
            --bitness "${tensorflow_target_bitness}"
 diff --git a/tensorflow/contrib/cmake/tf_tests.cmake b/tensorflow/contrib/cmake/tf_tests.cmake
-index b2330c4..e220d5d 100644
+index b2330c4..e1177cc 100644
 --- a/tensorflow/contrib/cmake/tf_tests.cmake
 +++ b/tensorflow/contrib/cmake/tf_tests.cmake
 @@ -34,6 +34,11 @@ function(GetTestRunPath VAR_NAME OBJ_NAME)
@@ -750,7 +750,15 @@ index b2330c4..e220d5d 100644
  
    GetTestRunPath(testdir ${_AT_TARGET})
    set(tempdir "${testdir}/tmp")
-@@ -473,6 +479,20 @@ if (tensorflow_BUILD_CC_TESTS)
+@@ -355,6 +361,7 @@ if (tensorflow_BUILD_CC_TESTS)
+     "${tensorflow_source_dir}/tensorflow/core/framework/shape_inference_testutil.cc"
+     "${tensorflow_source_dir}/tensorflow/core/framework/tensor_testutil.cc"
+     "${tensorflow_source_dir}/tensorflow/core/graph/testlib.cc"
++    "${tensorflow_source_dir}/tensorflow/core/kernels/ops_testutil.cc"
+     "${tensorflow_source_dir}/tensorflow/core/platform/test.cc"
+     "${tensorflow_source_dir}/tensorflow/core/platform/test_main.cc"
+     "${tensorflow_source_dir}/tensorflow/core/platform/default/test_benchmark.cc"
+@@ -473,6 +480,27 @@ if (tensorflow_BUILD_CC_TESTS)
        "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/training_ops_test.cc"
        "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/tree_utils_test.cc"
      )
@@ -760,10 +768,17 @@ index b2330c4..e220d5d 100644
 +        ${tf_test_src_simple_exclude}
 +        # TODO: not compiling in msys2
 +        "${tensorflow_source_dir}/tensorflow/core/platform/s3/s3_file_system_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/xsmm_conv2d_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/split_v_op_test.cc"
 +
 +        # TODO: not linking in msys2
 +        "${tensorflow_source_dir}/tensorflow/core/platform/numa_test.cc"
 +        "${tensorflow_source_dir}/tensorflow/core/platform/cloud/retrying_utils_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/unary_ops_composition_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/summary_tensor_op_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/summary_audio_op_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/spectrogram_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/platform/cloud/curl_http_request_test.cc"
 +
 +        # TODO: test failing
 +      )
@@ -771,7 +786,7 @@ index b2330c4..e220d5d 100644
    endif()
  
    # Tests for saved_model require data, so need to treat them separately.
-@@ -504,9 +524,11 @@ if (tensorflow_BUILD_CC_TESTS)
+@@ -504,9 +532,11 @@ if (tensorflow_BUILD_CC_TESTS)
      $<TARGET_OBJECTS:tf_core_cpu>
      $<TARGET_OBJECTS:tf_core_framework>
      $<TARGET_OBJECTS:tf_core_kernels>
