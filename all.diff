@@ -1,0 +1,950 @@
+ tensorflow/contrib/cmake/CMakeLists.txt            | 28 ++++++++----
+ .../contrib/cmake/external/double_conversion.cmake |  7 ++-
+ tensorflow/contrib/cmake/external/farmhash.cmake   | 15 ++++++-
+ tensorflow/contrib/cmake/external/fft2d.cmake      |  7 ++-
+ tensorflow/contrib/cmake/external/gemmlowp.cmake   |  7 +++
+ tensorflow/contrib/cmake/external/gif.cmake        |  7 ++-
+ tensorflow/contrib/cmake/external/googletest.cmake |  4 ++
+ tensorflow/contrib/cmake/external/grpc.cmake       |  7 +++
+ .../contrib/cmake/external/highwayhash.cmake       | 34 ++++++++++++---
+ tensorflow/contrib/cmake/external/jpeg.cmake       |  7 ++-
+ tensorflow/contrib/cmake/external/jsoncpp.cmake    |  2 +
+ tensorflow/contrib/cmake/external/lmdb.cmake       |  7 ++-
+ tensorflow/contrib/cmake/external/nsync.cmake      | 50 +++++++++++++++++++---
+ tensorflow/contrib/cmake/external/png.cmake        | 10 +++++
+ tensorflow/contrib/cmake/external/protobuf.cmake   |  9 ++++
+ tensorflow/contrib/cmake/external/re2.cmake        |  2 +
+ tensorflow/contrib/cmake/external/snappy.cmake     |  2 +
+ tensorflow/contrib/cmake/external/sqlite.cmake     |  7 ++-
+ tensorflow/contrib/cmake/external/zlib.cmake       |  8 ++++
+ .../contrib/cmake/patches/gif/CMakeLists.txt       | 10 ++---
+ .../contrib/cmake/patches/jpeg/CMakeLists.txt      | 10 ++---
+ .../contrib/cmake/patches/lmdb/CMakeLists.txt      | 10 ++---
+ .../contrib/cmake/patches/nsync/CMakeLists.txt     | 12 +++---
+ tensorflow/contrib/cmake/tf_cc_ops.cmake           |  8 +++-
+ tensorflow/contrib/cmake/tf_core_framework.cmake   |  8 +++-
+ tensorflow/contrib/cmake/tf_core_kernels.cmake     |  2 +-
+ tensorflow/contrib/cmake/tf_python.cmake           | 10 ++++-
+ tensorflow/contrib/cmake/tf_shared_lib.cmake       |  2 +-
+ tensorflow/contrib/cmake/tf_tests.cmake            | 34 ++++++++++++++-
+ tensorflow/contrib/cmake/tools/create_def_file.py  | 25 ++++++-----
+ tensorflow/core/common_runtime/pool_allocator.cc   |  4 --
+ .../core/grappler/clusters/single_machine.cc       |  2 +
+ tensorflow/core/platform/cpu_info.cc               |  2 +
+ tensorflow/core/platform/windows/env_time.cc       |  2 +-
+ .../core/platform/windows/windows_file_system.cc   |  4 ++
+ .../core/platform/windows/windows_file_system.h    |  2 +
+ 36 files changed, 295 insertions(+), 72 deletions(-)
+
+diff --git a/tensorflow/contrib/cmake/CMakeLists.txt b/tensorflow/contrib/cmake/CMakeLists.txt
+index a0a5b0e..ae64c3a 100644
+--- a/tensorflow/contrib/cmake/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/CMakeLists.txt
+@@ -114,6 +114,16 @@ function(SHOW_VARIABLES)
+     endforeach()
+ endfunction()
+ 
++# close warnings
++add_compile_options(-Wno-attributes -Wno-ignored-attributes)
++add_compile_options(-Wno-shift-count-overflow)
++# add_compile_options(-Wno-conversion-null)
++# open msse
++set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse")
++set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse")
++# other
++add_definitions(-DSLEEP_FUNC_HEADER_GUARD)
++
+ # External dependencies
+ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/external)
+ 
+@@ -149,17 +159,17 @@ if(WIN32)
+   add_definitions(-DWIN32 -DOS_WIN -D_MBCS -DWIN32_LEAN_AND_MEAN -DNOGDI -DPLATFORM_WINDOWS)
+   add_definitions(-DTENSORFLOW_USE_EIGEN_THREADPOOL -DEIGEN_HAS_C99_MATH)
+   add_definitions(-DTF_COMPILE_LIBRARY)
+-  add_definitions(/bigobj /nologo /EHsc /GF /MP /Gm-)
++  # add_definitions(/bigobj /nologo /EHsc /GF /MP /Gm-)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+   # Suppress linker warnings.
+-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
+-  set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
+-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
+-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
++  # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
++  # set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
++  # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4049 /ignore:4197 /ignore:4217 /ignore:4221")
++  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+   set(CMAKE_CXX_FLAGS_DEBUG "/D_DEBUG /MDd /Ob2")
+   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /D_ITERATOR_DEBUG_LEVEL=0")
+   set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /D_ITERATOR_DEBUG_LEVEL=0")
+diff --git a/tensorflow/contrib/cmake/external/double_conversion.cmake b/tensorflow/contrib/cmake/external/double_conversion.cmake
+index 5c5adaf..07d2ac6 100644
+--- a/tensorflow/contrib/cmake/external/double_conversion.cmake
++++ b/tensorflow/contrib/cmake/external/double_conversion.cmake
+@@ -22,7 +22,12 @@ set(double_conversion_LIBRARIES ${double_conversion_BUILD}/double-conversion/lib
+ set(double_conversion_INCLUDES ${double_conversion_BUILD})
+ 
+ if(WIN32)
+-  set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/$(Configuration)/double-conversion.lib)
++  # set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/$(Configuration)/double-conversion.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/libdouble-conversion.a)
++  else()
++    set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/$(Configuration)/double-conversion.lib)
++  endif()
+ else()
+   set(double_conversion_STATIC_LIBRARIES ${double_conversion_BUILD}/libdouble-conversion.a)
+ endif()
+diff --git a/tensorflow/contrib/cmake/external/farmhash.cmake b/tensorflow/contrib/cmake/external/farmhash.cmake
+index d51569b..724a6b7 100644
+--- a/tensorflow/contrib/cmake/external/farmhash.cmake
++++ b/tensorflow/contrib/cmake/external/farmhash.cmake
+@@ -22,10 +22,16 @@ set(farmhash_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/farmhash/install)
+ set(farmhash_INCLUDES ${farmhash_BUILD})
+ set(farmhash_HEADERS
+     "${farmhash_BUILD}/src/farmhash.h"
++    "${farmhash_BUILD}/endian.h"
+ )
+ 
+ if(WIN32)
+-  set(farmhash_STATIC_LIBRARIES ${farmhash_INSTALL}/lib/farmhash.lib)
++  # set(farmhash_STATIC_LIBRARIES ${farmhash_INSTALL}/lib/farmhash.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(farmhash_STATIC_LIBRARIES ${farmhash_INSTALL}/lib/libfarmhash.a)
++  else()
++    set(farmhash_STATIC_LIBRARIES ${farmhash_INSTALL}/lib/farmhash.lib)
++  endif()
+ 
+   ExternalProject_Add(farmhash
+       PREFIX farmhash
+@@ -59,6 +65,13 @@ else()
+ 
+ endif()
+ 
++ExternalProject_Add_Step(farmhash "copy_MinGW-endian.h"
++    COMMAND ${CMAKE_COMMAND} -E copy
++    ${CMAKE_SOURCE_DIR}/patches/farmhash/MinGW-endian.h ${farmhash_BUILD}/endian.h
++    DEPENDEES patch
++    DEPENDERS build
++)
++
+ # put farmhash includes in the directory where they are expected
+ add_custom_target(farmhash_create_destination_dir
+     COMMAND ${CMAKE_COMMAND} -E make_directory ${farmhash_INCLUDE_DIR}
+diff --git a/tensorflow/contrib/cmake/external/fft2d.cmake b/tensorflow/contrib/cmake/external/fft2d.cmake
+index a7bc50d..8cc7bfb 100644
+--- a/tensorflow/contrib/cmake/external/fft2d.cmake
++++ b/tensorflow/contrib/cmake/external/fft2d.cmake
+@@ -21,7 +21,12 @@ set(fft2d_BUILD ${CMAKE_CURRENT_BINARY_DIR}/fft2d/)
+ set(fft2d_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/fft2d/src)
+ 
+ if(WIN32)
+-  set(fft2d_STATIC_LIBRARIES ${fft2d_BUILD}/src/lib/fft2d.lib)
++  # set(fft2d_STATIC_LIBRARIES ${fft2d_BUILD}/src/lib/fft2d.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(fft2d_STATIC_LIBRARIES ${fft2d_BUILD}/src/lib/libfft2d.a)
++  else()
++    set(fft2d_STATIC_LIBRARIES ${fft2d_BUILD}/src/lib/fft2d.lib)
++  endif()
+ 
+   ExternalProject_Add(fft2d
+       PREFIX fft2d
+diff --git a/tensorflow/contrib/cmake/external/gemmlowp.cmake b/tensorflow/contrib/cmake/external/gemmlowp.cmake
+index cdaa6b7..47a9115 100644
+--- a/tensorflow/contrib/cmake/external/gemmlowp.cmake
++++ b/tensorflow/contrib/cmake/external/gemmlowp.cmake
+@@ -27,3 +27,10 @@ ExternalProject_Add(gemmlowp
+     BUILD_IN_SOURCE 1
+     PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/patches/gemmlowp/CMakeLists.txt ${gemmlowp_BUILD}
+     INSTALL_COMMAND "")
++
++ExternalProject_Add_Step(gemmlowp "copy_internal-platform.h"
++    COMMAND ${CMAKE_COMMAND} -E copy
++    ${CMAKE_SOURCE_DIR}/patches/gemmlowp/internal-platform.h ${gemmlowp_BUILD}/internal/platform.h
++    DEPENDEES patch
++    DEPENDERS build
++)
+diff --git a/tensorflow/contrib/cmake/external/gif.cmake b/tensorflow/contrib/cmake/external/gif.cmake
+index e1f8d13..8cfe885 100644
+--- a/tensorflow/contrib/cmake/external/gif.cmake
++++ b/tensorflow/contrib/cmake/external/gif.cmake
+@@ -27,7 +27,12 @@ set(gif_HEADERS
+ 
+ if(WIN32)
+ 
+-  set(gif_STATIC_LIBRARIES ${gif_INSTALL}/lib/giflib.lib)
++  # set(gif_STATIC_LIBRARIES ${gif_INSTALL}/lib/giflib.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(gif_STATIC_LIBRARIES ${gif_INSTALL}/lib/libgiflib.a)
++  else()
++    set(gif_STATIC_LIBRARIES ${gif_INSTALL}/lib/giflib.lib)
++  endif()
+ 
+   ExternalProject_Add(gif
+       PREFIX gif
+diff --git a/tensorflow/contrib/cmake/external/googletest.cmake b/tensorflow/contrib/cmake/external/googletest.cmake
+index 7cc5ae6..9f00550 100644
+--- a/tensorflow/contrib/cmake/external/googletest.cmake
++++ b/tensorflow/contrib/cmake/external/googletest.cmake
+@@ -23,6 +23,9 @@ if(WIN32)
+   if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+     set(googletest_STATIC_LIBRARIES
+         ${CMAKE_CURRENT_BINARY_DIR}/googletest/src/googletest/googletest/$(Configuration)/gtest.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(googletest_STATIC_LIBRARIES
++        ${CMAKE_CURRENT_BINARY_DIR}/googletest/src/googletest/googletest/libgtest.a)
+   else()
+     set(googletest_STATIC_LIBRARIES
+         ${CMAKE_CURRENT_BINARY_DIR}/googletest/src/googletest/googletest/gtest.lib)
+@@ -46,4 +49,5 @@ ExternalProject_Add(googletest
+         -DBUILD_GMOCK:BOOL=OFF
+         -DBUILD_GTEST:BOOL=ON
+         -Dgtest_force_shared_crt:BOOL=ON
++        -Dgtest_disable_pthreads:BOOL=ON
+ )
+diff --git a/tensorflow/contrib/cmake/external/grpc.cmake b/tensorflow/contrib/cmake/external/grpc.cmake
+index b1e64aa..1721e91 100644
+--- a/tensorflow/contrib/cmake/external/grpc.cmake
++++ b/tensorflow/contrib/cmake/external/grpc.cmake
+@@ -29,6 +29,11 @@ if(WIN32)
+         ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/Release/grpc++_unsecure.lib
+         ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/Release/grpc_unsecure.lib
+         ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/Release/gpr.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(grpc_STATIC_LIBRARIES
++        ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/libgrpc++_unsecure.a
++        ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/libgrpc_unsecure.a
++        ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/libgpr.a)
+   else()
+     set(grpc_STATIC_LIBRARIES
+         ${CMAKE_CURRENT_BINARY_DIR}/grpc/src/grpc/grpc++_unsecure.lib
+@@ -57,6 +62,8 @@ ExternalProject_Add(grpc
+     DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+     BUILD_IN_SOURCE 1
+     BUILD_BYPRODUCTS ${grpc_STATIC_LIBRARIES}
++    PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different
++        ${CMAKE_CURRENT_SOURCE_DIR}/patches/grpc/CMakeLists.txt ${GRPC_BUILD}
+     BUILD_COMMAND ${CMAKE_COMMAND} --build . --config Release --target ${grpc_TARGET}
+     COMMAND ${CMAKE_COMMAND} --build . --config Release --target grpc_cpp_plugin
+     INSTALL_COMMAND ""
+diff --git a/tensorflow/contrib/cmake/external/highwayhash.cmake b/tensorflow/contrib/cmake/external/highwayhash.cmake
+index a6e8a38..f8128b9 100644
+--- a/tensorflow/contrib/cmake/external/highwayhash.cmake
++++ b/tensorflow/contrib/cmake/external/highwayhash.cmake
+@@ -29,13 +29,32 @@ add_custom_target(highwayhash_copy_headers_to_destination
+     DEPENDS highwayhash_create_destination_dir)
+ 
+ if(WIN32)
+-  set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
+-  set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/highwayhash.lib)
++  # set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
++  # set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/highwayhash.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/libhighwayhash.a)
++  else()
++    set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/highwayhash.lib)
++  endif()
+ else()
+-  set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
++  # set(highwayhash_HEADERS "${highwayhash_BUILD}/highwayhash/*.h")
+   set(highwayhash_STATIC_LIBRARIES ${highwayhash_INSTALL}/lib/libhighwayhash.a)
+ endif()
+ 
++set(highwayhash_HEADERS
++    "${highwayhash_BUILD}/highwayhash/code_annotation.h"
++    "${highwayhash_BUILD}/highwayhash/highway_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/scalar_highway_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/scalar_sip_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/sip_hash.h"
++    "${highwayhash_BUILD}/highwayhash/sip_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/sse41_highway_tree_hash.h"
++    "${highwayhash_BUILD}/highwayhash/state_helpers.h"
++    "${highwayhash_BUILD}/highwayhash/types.h"
++    "${highwayhash_BUILD}/highwayhash/vec.h"
++    "${highwayhash_BUILD}/highwayhash/vec2.h"
++)
++
+ ExternalProject_Add(highwayhash
+     PREFIX highwayhash
+     GIT_REPOSITORY ${highwayhash_URL}
+@@ -50,5 +69,10 @@ ExternalProject_Add(highwayhash
+         -DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
+         -DCMAKE_INSTALL_PREFIX:STRING=${highwayhash_INSTALL})
+ 
+-add_custom_command(TARGET highwayhash_copy_headers_to_destination PRE_BUILD
+-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${highwayhash_INSTALL}/include/ ${highwayhash_INCLUDE_DIR}/highwayhash)
++# add_custom_command(TARGET highwayhash_copy_headers_to_destination PRE_BUILD
++    # COMMAND ${CMAKE_COMMAND} -E copy_directory ${highwayhash_INSTALL}/include/ ${highwayhash_INCLUDE_DIR}/highwayhash)
++
++foreach(header_file ${highwayhash_HEADERS})
++    add_custom_command(TARGET highwayhash_copy_headers_to_destination PRE_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header_file} ${highwayhash_INCLUDE_DIR}/highwayhash)
++endforeach()
+diff --git a/tensorflow/contrib/cmake/external/jpeg.cmake b/tensorflow/contrib/cmake/external/jpeg.cmake
+index c1c5842..dd9844f 100644
+--- a/tensorflow/contrib/cmake/external/jpeg.cmake
++++ b/tensorflow/contrib/cmake/external/jpeg.cmake
+@@ -21,7 +21,12 @@ set(jpeg_BUILD ${CMAKE_CURRENT_BINARY_DIR}/jpeg/src/jpeg)
+ set(jpeg_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/jpeg/install)
+ 
+ if(WIN32)
+-  set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/libjpeg.lib)
++  # set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/libjpeg.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/liblibjpeg.a)
++  else()
++    set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/libjpeg.lib)
++  endif()
+ else()
+   set(jpeg_STATIC_LIBRARIES ${jpeg_INSTALL}/lib/libjpeg.a)
+ endif()
+diff --git a/tensorflow/contrib/cmake/external/jsoncpp.cmake b/tensorflow/contrib/cmake/external/jsoncpp.cmake
+index 84c52e3..23e619a 100644
+--- a/tensorflow/contrib/cmake/external/jsoncpp.cmake
++++ b/tensorflow/contrib/cmake/external/jsoncpp.cmake
+@@ -25,6 +25,8 @@ set(jsoncpp_INCLUDES ${jsoncpp_BUILD})
+ if(WIN32)
+   if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+     set(jsoncpp_STATIC_LIBRARIES ${jsoncpp_BUILD}/$(Configuration)/jsoncpp.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(jsoncpp_STATIC_LIBRARIES ${jsoncpp_BUILD}/libjsoncpp.a)
+   else()
+     set(jsoncpp_STATIC_LIBRARIES ${jsoncpp_BUILD}/jsoncpp.lib)
+   endif()
+diff --git a/tensorflow/contrib/cmake/external/lmdb.cmake b/tensorflow/contrib/cmake/external/lmdb.cmake
+index ed5ab78..2bc5193 100644
+--- a/tensorflow/contrib/cmake/external/lmdb.cmake
++++ b/tensorflow/contrib/cmake/external/lmdb.cmake
+@@ -21,7 +21,12 @@ set(lmdb_BUILD ${CMAKE_BINARY_DIR}/lmdb/src/lmdb)
+ set(lmdb_INSTALL ${CMAKE_BINARY_DIR}/lmdb/install)
+ 
+ if(WIN32)
+-    set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/lmdb.lib)
++    # set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/lmdb.lib)
++    if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++      set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/liblmdb.a)
++    else()
++      set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/lmdb.lib)
++    endif()
+ else()
+     set(lmdb_STATIC_LIBRARIES ${lmdb_INSTALL}/lib/liblmdb.a)
+ endif()
+diff --git a/tensorflow/contrib/cmake/external/nsync.cmake b/tensorflow/contrib/cmake/external/nsync.cmake
+index eba3bcf..66930ba 100644
+--- a/tensorflow/contrib/cmake/external/nsync.cmake
++++ b/tensorflow/contrib/cmake/external/nsync.cmake
+@@ -29,13 +29,34 @@ add_custom_target(nsync_copy_headers_to_destination
+     DEPENDS nsync_create_destination_dir)
+ 
+ if(WIN32)
+-  set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
+-  set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/nsync.lib)
++  # set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
++  # set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/nsync.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/libnsync.a)
++  else()
++    set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/nsync.lib)
++  endif()
+ else()
+-  set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
++  # set(nsync_HEADERS "${nsync_BUILD}/public/*.h")
+   set(nsync_STATIC_LIBRARIES ${nsync_INSTALL}/lib/libnsync.a)
+ endif()
+ 
++set(nsync_HEADERS
++    "${nsync_BUILD}/public/nsync.h"
++    "${nsync_BUILD}/public/nsync_atomic.h"
++    "${nsync_BUILD}/public/nsync_counter.h"
++    "${nsync_BUILD}/public/nsync_cpp.h"
++    "${nsync_BUILD}/public/nsync_cv.h"
++    "${nsync_BUILD}/public/nsync_debug.h"
++    "${nsync_BUILD}/public/nsync_mu.h"
++    "${nsync_BUILD}/public/nsync_mu_wait.h"
++    "${nsync_BUILD}/public/nsync_note.h"
++    "${nsync_BUILD}/public/nsync_once.h"
++    "${nsync_BUILD}/public/nsync_time.h"
++    "${nsync_BUILD}/public/nsync_time_internal.h"
++    "${nsync_BUILD}/public/nsync_waiter.h"
++)
++
+ ExternalProject_Add(nsync
+     PREFIX nsync
+     GIT_REPOSITORY ${nsync_URL}
+@@ -51,5 +72,24 @@ ExternalProject_Add(nsync
+         -DCMAKE_INSTALL_PREFIX:STRING=${nsync_INSTALL}
+ 	-DNSYNC_LANGUAGE:STRING=c++11)
+ 
+-add_custom_command(TARGET nsync_copy_headers_to_destination PRE_BUILD
+-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${nsync_INSTALL}/include/ ${nsync_INCLUDE_DIR}/)
++ExternalProject_Add_Step(nsync "copy_platform-win32-platform_c++11_os.h"
++    COMMAND ${CMAKE_COMMAND} -E copy
++    ${CMAKE_SOURCE_DIR}/patches/nsync/platform-win32-platform_c++11_os.h ${nsync_BUILD}/platform/win32/platform_c++11_os.h
++    DEPENDEES patch
++    DEPENDERS build
++)
++
++ExternalProject_Add_Step(nsync "copy_platform-win32-src-pthread_key_win32.cc"
++    COMMAND ${CMAKE_COMMAND} -E copy
++    ${CMAKE_SOURCE_DIR}/patches/nsync/platform-win32-src-pthread_key_win32.cc ${nsync_BUILD}/platform/win32/src/pthread_key_win32.cc
++    DEPENDEES patch
++    DEPENDERS build
++)
++
++# add_custom_command(TARGET nsync_copy_headers_to_destination PRE_BUILD
++    # COMMAND ${CMAKE_COMMAND} -E copy_directory ${nsync_INSTALL}/include/ ${nsync_INCLUDE_DIR}/)
++
++foreach(header_file ${nsync_HEADERS})
++    add_custom_command(TARGET nsync_copy_headers_to_destination PRE_BUILD
++    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${header_file} ${nsync_INCLUDE_DIR})
++endforeach()
+diff --git a/tensorflow/contrib/cmake/external/png.cmake b/tensorflow/contrib/cmake/external/png.cmake
+index ad2af01..f12bcb6 100644
+--- a/tensorflow/contrib/cmake/external/png.cmake
++++ b/tensorflow/contrib/cmake/external/png.cmake
+@@ -25,6 +25,14 @@ if(WIN32)
+     set(png_STATIC_LIBRARIES 
+       debug ${CMAKE_BINARY_DIR}/png/install/lib/libpng16_staticd.lib
+       optimized ${CMAKE_BINARY_DIR}/png/install/lib/libpng16_static.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    if(CMAKE_BUILD_TYPE EQUAL Debug)
++      set(png_STATIC_LIBRARIES 
++        ${CMAKE_BINARY_DIR}/png/install/lib/libpng16d.a)
++    else()
++      set(png_STATIC_LIBRARIES 
++        ${CMAKE_BINARY_DIR}/png/install/lib/libpng16.a)
++    endif()
+   else()
+     if(CMAKE_BUILD_TYPE EQUAL Debug)
+       set(png_STATIC_LIBRARIES 
+@@ -50,6 +58,8 @@ ExternalProject_Add(png
+     URL ${png_URL}
+     URL_HASH ${png_HASH}
+     BUILD_BYPRODUCTS ${png_STATIC_LIBRARIES}
++    PATCH_COMMAND ${CMAKE_COMMAND} -E copy_if_different
++        ${CMAKE_CURRENT_SOURCE_DIR}/patches/png/CMakeLists.txt ${png_BUILD}
+     INSTALL_DIR ${png_INSTALL}
+     DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
+     CMAKE_CACHE_ARGS
+diff --git a/tensorflow/contrib/cmake/external/protobuf.cmake b/tensorflow/contrib/cmake/external/protobuf.cmake
+index f56fb35..1565c1e 100644
+--- a/tensorflow/contrib/cmake/external/protobuf.cmake
++++ b/tensorflow/contrib/cmake/external/protobuf.cmake
+@@ -24,6 +24,15 @@ if(WIN32)
+       debug ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/libprotobufd.lib
+       optimized ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/libprotobuf.lib)
+     set(PROTOBUF_PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/$(Configuration)/protoc.exe)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    if(CMAKE_BUILD_TYPE EQUAL Debug)
++      set(protobuf_STATIC_LIBRARIES
++        ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/libprotobufd.a)
++    else()
++      set(protobuf_STATIC_LIBRARIES
++        ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/libprotobuf.a)
++    endif()
++    set(PROTOBUF_PROTOC_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/protobuf/src/protobuf/protoc.exe)
+   else()
+     if(CMAKE_BUILD_TYPE EQUAL Debug)
+       set(protobuf_STATIC_LIBRARIES
+diff --git a/tensorflow/contrib/cmake/external/re2.cmake b/tensorflow/contrib/cmake/external/re2.cmake
+index c4bc0b1..78512ef 100644
+--- a/tensorflow/contrib/cmake/external/re2.cmake
++++ b/tensorflow/contrib/cmake/external/re2.cmake
+@@ -23,6 +23,8 @@ set(re2_TAG e7efc48)
+ if(WIN32)
+   if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+     set(re2_STATIC_LIBRARIES ${re2_BUILD}/$(Configuration)/re2.lib)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(re2_STATIC_LIBRARIES ${re2_BUILD}/libre2.a)
+   else()
+     set(re2_STATIC_LIBRARIES ${re2_BUILD}/re2.lib)
+   endif()
+diff --git a/tensorflow/contrib/cmake/external/snappy.cmake b/tensorflow/contrib/cmake/external/snappy.cmake
+index f541976..fe80283 100644
+--- a/tensorflow/contrib/cmake/external/snappy.cmake
++++ b/tensorflow/contrib/cmake/external/snappy.cmake
+@@ -22,6 +22,8 @@ set(snappy_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/snappy/src/snappy)
+ if(WIN32)
+     if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+         set(snappy_STATIC_LIBRARIES ${snappy_BUILD}/$(Configuration)/snappy.lib)
++    elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++        set(snappy_STATIC_LIBRARIES ${snappy_BUILD}/libsnappy.a)
+     else()
+         set(snappy_STATIC_LIBRARIES ${snappy_BUILD}/snappy.lib)
+     endif()
+diff --git a/tensorflow/contrib/cmake/external/sqlite.cmake b/tensorflow/contrib/cmake/external/sqlite.cmake
+index 7f835d2..7b30e46 100644
+--- a/tensorflow/contrib/cmake/external/sqlite.cmake
++++ b/tensorflow/contrib/cmake/external/sqlite.cmake
+@@ -21,7 +21,12 @@ set(sqlite_BUILD ${CMAKE_CURRENT_BINARY_DIR}/sqlite/src/sqlite)
+ set(sqlite_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/sqlite/install)
+ 
+ if(WIN32)
+-  set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/sqlite.lib)
++  # set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/sqlite.lib)
++  if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/libsqlite.a)
++  else()
++    set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/sqlite.lib)
++  endif()
+ else()
+   set(sqlite_STATIC_LIBRARIES ${sqlite_INSTALL}/lib/libsqlite.a)
+ endif()
+diff --git a/tensorflow/contrib/cmake/external/zlib.cmake b/tensorflow/contrib/cmake/external/zlib.cmake
+index 8942f3e..3e81fae 100644
+--- a/tensorflow/contrib/cmake/external/zlib.cmake
++++ b/tensorflow/contrib/cmake/external/zlib.cmake
+@@ -39,6 +39,14 @@ else (systemlib_ZLIB)
+       set(zlib_STATIC_LIBRARIES
+           debug ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/zlibstaticd.lib
+           optimized ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/zlibstatic.lib)
++    elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++      if(CMAKE_BUILD_TYPE EQUAL Debug)
++        set(zlib_STATIC_LIBRARIES
++            ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/libzlibstaticd.a)
++      else()
++        set(zlib_STATIC_LIBRARIES
++            ${CMAKE_CURRENT_BINARY_DIR}/zlib/install/lib/libzlibstatic.a)
++      endif()
+     else()
+       if(CMAKE_BUILD_TYPE EQUAL Debug)
+         set(zlib_STATIC_LIBRARIES
+diff --git a/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt b/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt
+index e19df93..d985642 100644
+--- a/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/patches/gif/CMakeLists.txt
+@@ -21,11 +21,11 @@ set(GIFLIB_INCLUDES
+ 
+ if (WIN32)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+-  add_definitions(/wd8029)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd8029)
+ endif()
+ 
+ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/lib")
+diff --git a/tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt b/tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt
+index 0baea99..3e939c9 100644
+--- a/tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/patches/jpeg/CMakeLists.txt
+@@ -64,11 +64,11 @@ set(LIBJPEG_INCLUDES
+ 
+ if (WIN32)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+-  add_definitions(/wd8029)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd8029)
+ endif()
+ 
+ include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
+diff --git a/tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt b/tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt
+index 2167b43..58ea36e 100644
+--- a/tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/patches/lmdb/CMakeLists.txt
+@@ -14,11 +14,11 @@ set(LIBLMDB_INCLUDES
+ 
+ if (WIN32)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+-  add_definitions(/wd8029)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd8029)
+ endif()
+ 
+ include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
+diff --git a/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt b/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt
+index 6f059c7..781a6bd 100644
+--- a/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt
++++ b/tensorflow/contrib/cmake/patches/nsync/CMakeLists.txt
+@@ -23,11 +23,11 @@ set (NSYNC_POSIX_SRC
+ 
+ if (WIN32)
+   # Suppress warnings to reduce build log size.
+-  add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
+-  add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
+-  add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
+-  add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
+-  add_definitions(/wd8029)
++  # add_definitions(/wd4267 /wd4244 /wd4800 /wd4503 /wd4554 /wd4996 /wd4348 /wd4018)
++  # add_definitions(/wd4099 /wd4146 /wd4267 /wd4305 /wd4307)
++  # add_definitions(/wd4715 /wd4722 /wd4723 /wd4838 /wd4309 /wd4334)
++  # add_definitions(/wd4003 /wd4244 /wd4267 /wd4503 /wd4506 /wd4800 /wd4996)
++  # add_definitions(/wd8029)
+ endif()
+ 
+ # Many of the string matches below use a literal "X" suffix on both sides.
+@@ -49,7 +49,7 @@ if ("${NSYNC_LANGUAGE}X" STREQUAL "c++11X")
+   )
+   if ("${CMAKE_SYSTEM_NAME}X" STREQUAL "WindowsX")
+     include_directories ("${PROJECT_SOURCE_DIR}/platform/win32")
+-    add_compile_options ("/TP")
++    # add_compile_options ("/TP")
+     set (NSYNC_OS_SRC
+       "platform/c++11/src/nsync_semaphore_mutex.cc"
+       "platform/win32/src/clock_gettime.c"
+diff --git a/tensorflow/contrib/cmake/tf_cc_ops.cmake b/tensorflow/contrib/cmake/tf_cc_ops.cmake
+index 6c90cf3..d358452 100644
+--- a/tensorflow/contrib/cmake/tf_cc_ops.cmake
++++ b/tensorflow/contrib/cmake/tf_cc_ops.cmake
+@@ -151,6 +151,8 @@ add_dependencies(tf_cc tf_cc_framework tf_cc_ops)
+ if (WIN32)
+   if(${CMAKE_GENERATOR} MATCHES "Visual Studio.*")
+     set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/pywrap_tensorflow_internal.lib")
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal.dll.a")
+   else()
+     set (pywrap_tensorflow_lib "${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow_internal.lib")
+   endif()
+@@ -187,14 +189,16 @@ function(AddUserOps)
+   get_target_property(target_compile_flags  ${_AT_TARGET} COMPILE_FLAGS)
+   if(target_compile_flags STREQUAL "target_compile_flags-NOTFOUND")
+     if (WIN32)
+-      set(target_compile_flags "/UTF_COMPILE_LIBRARY")
++      # set(target_compile_flags "/UTF_COMPILE_LIBRARY")
++      set(target_compile_flags "-finput-charset=UTF-8")
+     else (WIN32)
+       # gcc uses UTF as default
+       set(target_compile_flags "-finput-charset=UTF-8")
+     endif (WIN32)
+   else()
+     if (WIN32)
+-      set(target_compile_flags "${target_compile_flags} /UTF_COMPILE_LIBRARY")
++      # set(target_compile_flags "${target_compile_flags} /UTF_COMPILE_LIBRARY")
++      set(target_compile_flags "${target_compile_flags} -finput-charset=UTF-8")
+     else (WIN32)
+       # gcc uses UTF as default
+       set(target_compile_flags "${target_compile_flags} -finput-charset=UTF-8")
+diff --git a/tensorflow/contrib/cmake/tf_core_framework.cmake b/tensorflow/contrib/cmake/tf_core_framework.cmake
+index 067c299..239ed91 100644
+--- a/tensorflow/contrib/cmake/tf_core_framework.cmake
++++ b/tensorflow/contrib/cmake/tf_core_framework.cmake
+@@ -262,10 +262,14 @@ set(VERSION_INFO_CC ${tensorflow_source_dir}/tensorflow/core/util/version_info.c
+ add_custom_target(force_rebuild_target ALL DEPENDS ${VERSION_INFO_CC})
+ add_custom_command(OUTPUT __force_rebuild COMMAND ${CMAKE_COMMAND} -E echo)
+ add_custom_command(OUTPUT
+-    ${VERSION_INFO_CC}
++    ${VERSION_INFO_CC}.tmp
+     COMMAND ${PYTHON_EXECUTABLE} ${tensorflow_source_dir}/tensorflow/tools/git/gen_git_source.py
+-    ARGS --raw_generate ${VERSION_INFO_CC} --source_dir ${tensorflow_source_dir} --git_tag_override=${GIT_TAG_OVERRIDE}
++    ARGS --raw_generate ${VERSION_INFO_CC}.tmp --source_dir ${tensorflow_source_dir} --git_tag_override=${GIT_TAG_OVERRIDE}
+     DEPENDS __force_rebuild)
++add_custom_command(OUTPUT
++    ${VERSION_INFO_CC}
++    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${VERSION_INFO_CC}.tmp ${VERSION_INFO_CC}
++    DEPENDS ${VERSION_INFO_CC}.tmp)
+ set(tf_version_srcs ${tensorflow_source_dir}/tensorflow/core/util/version_info.cc)
+ 
+ ########################################################
+diff --git a/tensorflow/contrib/cmake/tf_core_kernels.cmake b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+index 844f626..3800f91 100644
+--- a/tensorflow/contrib/cmake/tf_core_kernels.cmake
++++ b/tensorflow/contrib/cmake/tf_core_kernels.cmake
+@@ -221,7 +221,7 @@ add_library(tf_core_kernels OBJECT ${tf_core_kernels_srcs})
+ add_dependencies(tf_core_kernels tf_core_cpu)
+ 
+ if (WIN32)
+-  target_compile_options(tf_core_kernels PRIVATE /MP)
++  # target_compile_options(tf_core_kernels PRIVATE /MP)
+ endif (WIN32)
+ if (tensorflow_ENABLE_GPU)
+   set_source_files_properties(${tf_core_gpu_kernels_srcs} PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
+diff --git a/tensorflow/contrib/cmake/tf_python.cmake b/tensorflow/contrib/cmake/tf_python.cmake
+index 32b185f..46edcc3 100644
+--- a/tensorflow/contrib/cmake/tf_python.cmake
++++ b/tensorflow/contrib/cmake/tf_python.cmake
+@@ -305,7 +305,7 @@ function(GENERATE_PYTHON_OP_LIB tf_python_op_lib_name)
+     # containing the wrappers.
+     add_custom_command(
+       OUTPUT ${GENERATE_PYTHON_OP_LIB_DESTINATION}
+-      COMMAND ${tf_python_op_lib_name}_gen_python ${tensorflow_source_dir}/tensorflow/core/api_def/base_api,${tensorflow_source_dir}/tensorflow/core/api_def/python_api ${require_shape_fn} > ${GENERATE_PYTHON_OP_LIB_DESTINATION}
++      COMMAND ${tf_python_op_lib_name}_gen_python /${tensorflow_source_dir}/tensorflow/core/api_def/base_api,${tensorflow_source_dir}/tensorflow/core/api_def/python_api ${require_shape_fn} > ${GENERATE_PYTHON_OP_LIB_DESTINATION}
+       DEPENDS ${tf_python_op_lib_name}_gen_python
+     )
+ 
+@@ -569,7 +569,7 @@ if(WIN32)
+     math(EXPR tensorflow_target_bitness "${CMAKE_SIZEOF_VOID_P}*8")
+     add_custom_command(TARGET pywrap_tensorflow_internal_static POST_BUILD
+         COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/create_def_file.py
+-            --input "${pywrap_tensorflow_internal_static_dependencies}"
++            --input "\"${pywrap_tensorflow_internal_static_dependencies}\""
+             --output "${pywrap_tensorflow_deffile}"
+             --target _pywrap_tensorflow_internal.pyd
+             --bitness "${tensorflow_target_bitness}"
+@@ -718,6 +718,12 @@ if(WIN32)
+                                        ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow_internal.pyd
+       COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/$(Configuration)/pywrap_tensorflow_internal.lib
+                                        ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/)
++  elseif(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++    add_custom_command(TARGET pywrap_tensorflow_internal POST_BUILD
++      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal.dll
++                                       ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/_pywrap_tensorflow_internal.pyd
++      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libpywrap_tensorflow_internal.dll.a
++                                       ${CMAKE_CURRENT_BINARY_DIR}/tf_python/tensorflow/python/)
+   else()
+     add_custom_command(TARGET pywrap_tensorflow_internal POST_BUILD
+       COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/pywrap_tensorflow_internal.dll
+diff --git a/tensorflow/contrib/cmake/tf_shared_lib.cmake b/tensorflow/contrib/cmake/tf_shared_lib.cmake
+index fdf522f..05e0c79 100644
+--- a/tensorflow/contrib/cmake/tf_shared_lib.cmake
++++ b/tensorflow/contrib/cmake/tf_shared_lib.cmake
+@@ -55,7 +55,7 @@ if(WIN32)
+   math(EXPR tensorflow_target_bitness "${CMAKE_SIZEOF_VOID_P}*8")
+   add_custom_command(TARGET tensorflow_static POST_BUILD
+       COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/create_def_file.py
+-          --input "${tensorflow_static_dependencies}"
++          --input "\"${tensorflow_static_dependencies}\""
+           --output "${tensorflow_deffile}"
+           --target tensorflow.dll
+           --bitness "${tensorflow_target_bitness}"
+diff --git a/tensorflow/contrib/cmake/tf_tests.cmake b/tensorflow/contrib/cmake/tf_tests.cmake
+index b2330c4..45f51e2 100644
+--- a/tensorflow/contrib/cmake/tf_tests.cmake
++++ b/tensorflow/contrib/cmake/tf_tests.cmake
+@@ -34,6 +34,11 @@ function(GetTestRunPath VAR_NAME OBJ_NAME)
+     set(${VAR_NAME} "${TMPDIR}/${OBJ_NAME}" PARENT_SCOPE)
+ endfunction(GetTestRunPath)
+ 
++#
++# Build all tests.
++#
++add_custom_target(tf_build_all_tests)
++
+ #
+ # create test for each source
+ #
+@@ -70,8 +75,9 @@ function(AddTest)
+     list(REMOVE_DUPLICATES _AT_DEPENDS)
+   endif(_AT_DEPENDS)
+ 
+-  add_executable(${_AT_TARGET} ${_AT_SOURCES} ${_AT_OBJECTS})
++  add_executable(${_AT_TARGET} EXCLUDE_FROM_ALL ${_AT_SOURCES} ${_AT_OBJECTS})
+   target_link_libraries(${_AT_TARGET} ${_AT_LIBS})
++  add_dependencies(tf_build_all_tests ${_AT_TARGET})
+ 
+   GetTestRunPath(testdir ${_AT_TARGET})
+   set(tempdir "${testdir}/tmp")
+@@ -355,6 +361,7 @@ if (tensorflow_BUILD_CC_TESTS)
+     "${tensorflow_source_dir}/tensorflow/core/framework/shape_inference_testutil.cc"
+     "${tensorflow_source_dir}/tensorflow/core/framework/tensor_testutil.cc"
+     "${tensorflow_source_dir}/tensorflow/core/graph/testlib.cc"
++    "${tensorflow_source_dir}/tensorflow/core/kernels/ops_testutil.cc"
+     "${tensorflow_source_dir}/tensorflow/core/platform/test.cc"
+     "${tensorflow_source_dir}/tensorflow/core/platform/test_main.cc"
+     "${tensorflow_source_dir}/tensorflow/core/platform/default/test_benchmark.cc"
+@@ -473,6 +480,27 @@ if (tensorflow_BUILD_CC_TESTS)
+       "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/training_ops_test.cc"
+       "${tensorflow_source_dir}/tensorflow/contrib/tensor_forest/core/ops/tree_utils_test.cc"
+     )
++
++    if(${CMAKE_GENERATOR} MATCHES "MSYS.*")
++      set(tf_test_src_simple_exclude
++        ${tf_test_src_simple_exclude}
++        # TODO: not compiling in msys2
++        "${tensorflow_source_dir}/tensorflow/core/platform/s3/s3_file_system_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/xsmm_conv2d_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/split_v_op_test.cc"
++
++        # TODO: not linking in msys2
++        "${tensorflow_source_dir}/tensorflow/core/platform/numa_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/platform/cloud/retrying_utils_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/unary_ops_composition_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/summary_tensor_op_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/summary_audio_op_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/kernels/spectrogram_test.cc"
++        "${tensorflow_source_dir}/tensorflow/core/platform/cloud/curl_http_request_test.cc"
++
++        # TODO: test failing
++      )
++    endif()
+   endif()
+ 
+   # Tests for saved_model require data, so need to treat them separately.
+@@ -495,7 +523,7 @@ if (tensorflow_BUILD_CC_TESTS)
+   )
+ 
+   set(tf_test_lib tf_test_lib)
+-  add_library(${tf_test_lib} STATIC ${tf_src_testlib})
++  add_library(${tf_test_lib} STATIC EXCLUDE_FROM_ALL ${tf_src_testlib})
+ 
+   # this is giving to much objects and libraries to the linker but
+   # it makes this script much easier. So for now we do it this way.
+@@ -504,9 +532,11 @@ if (tensorflow_BUILD_CC_TESTS)
+     $<TARGET_OBJECTS:tf_core_cpu>
+     $<TARGET_OBJECTS:tf_core_framework>
+     $<TARGET_OBJECTS:tf_core_kernels>
++    $<TARGET_OBJECTS:tf_core_profiler>
+     $<TARGET_OBJECTS:tf_cc>
+     $<TARGET_OBJECTS:tf_cc_framework>
+     $<TARGET_OBJECTS:tf_cc_ops>
++    $<TARGET_OBJECTS:tf_cc_while_loop>
+     $<TARGET_OBJECTS:tf_core_ops>
+     $<TARGET_OBJECTS:tf_core_direct_session>
+     $<$<BOOL:${tensorflow_ENABLE_GPU}>:$<TARGET_OBJECTS:tf_stream_executor>>
+diff --git a/tensorflow/contrib/cmake/tools/create_def_file.py b/tensorflow/contrib/cmake/tools/create_def_file.py
+index 4f957f1..62b8a33 100644
+--- a/tensorflow/contrib/cmake/tools/create_def_file.py
++++ b/tensorflow/contrib/cmake/tools/create_def_file.py
+@@ -107,13 +107,17 @@ def main():
+   candidates = []
+   tmpfile = tempfile.NamedTemporaryFile(mode="w", delete=False)
+   for lib_path in args.input:
+-    proc = subprocess.Popen([DUMPBIN, "/nologo", "/linkermember:1", lib_path],
++    # proc = subprocess.Popen([DUMPBIN, "/nologo", "/linkermember:1", lib_path],
++                            # stdout=subprocess.PIPE)
++    proc = subprocess.Popen(["nm", "--extern-only", "--defined-only", lib_path],
+                             stdout=subprocess.PIPE)
+     for line in codecs.getreader("utf-8")(proc.stdout):
+       cols = line.split()
+-      if len(cols) < 2:
++      # if len(cols) < 2:
++      if len(cols) < 3:
+         continue
+-      sym = cols[1]
++      # sym = cols[1]
++      sym = cols[2]
+       tmpfile.file.write(sym + "\n")
+       candidates.append(sym)
+     exit_code = proc.wait()
+@@ -131,15 +135,16 @@ def main():
+     # Header for the def file.
+     def_fp.write("LIBRARY " + args.target + "\n")
+     def_fp.write("EXPORTS\n")
+-    if args.bitness == "64":
+-      def_fp.write("\t??1OpDef@tensorflow@@UEAA@XZ\n")
+-    else:
+-      def_fp.write("\t??1OpDef@tensorflow@@UAE@XZ\n")
++    # if args.bitness == "64":
++      # def_fp.write("\t??1OpDef@tensorflow@@UEAA@XZ\n")
++    # else:
++      # def_fp.write("\t??1OpDef@tensorflow@@UAE@XZ\n")
+ 
+     # Each symbols returned by undname matches the same position in candidates.
+     # We compare on undname but use the decorated name from candidates.
+     dupes = 0
+-    proc = subprocess.Popen([UNDNAME, tmpfile.name], stdout=subprocess.PIPE)
++    # proc = subprocess.Popen([UNDNAME, tmpfile.name], stdout=subprocess.PIPE)
++    proc = subprocess.Popen(["c++filt", "@%s"%tmpfile.name], stdout=subprocess.PIPE)
+     for idx, line in enumerate(codecs.getreader("utf-8")(proc.stdout)):
+       decorated = candidates[idx]
+       if decorated in taken:
+@@ -160,9 +165,9 @@ def main():
+         continue
+ 
+       if DATA_EXCLUDE_RE.search(line):
+-        def_fp.write("\t" + decorated + "\n")
++        def_fp.write("\t" + decorated[1:] + "\n")
+       else:
+-        def_fp.write("\t" + decorated + " DATA\n")
++        def_fp.write("\t" + decorated[1:] + " DATA\n")
+       taken.add(decorated)
+   exit_code = proc.wait()
+   if exit_code != 0:
+diff --git a/tensorflow/core/common_runtime/pool_allocator.cc b/tensorflow/core/common_runtime/pool_allocator.cc
+index 10a24ed..a00c9b9 100644
+--- a/tensorflow/core/common_runtime/pool_allocator.cc
++++ b/tensorflow/core/common_runtime/pool_allocator.cc
+@@ -16,10 +16,6 @@ limitations under the License.
+ #include "tensorflow/core/common_runtime/pool_allocator.h"
+ 
+ #include <errno.h>
+-#ifndef _MSC_VER
+-#include <strings.h>
+-#include <sys/mman.h>  // for munmap
+-#endif
+ 
+ #include <map>
+ #include <utility>
+diff --git a/tensorflow/core/grappler/clusters/single_machine.cc b/tensorflow/core/grappler/clusters/single_machine.cc
+index b97603c..469fd00 100644
+--- a/tensorflow/core/grappler/clusters/single_machine.cc
++++ b/tensorflow/core/grappler/clusters/single_machine.cc
+@@ -33,6 +33,8 @@ limitations under the License.
+ #include "tensorflow/core/platform/types.h"
+ #include "tensorflow/core/public/session.h"
+ 
++inline void sleep(unsigned int seconds) { Sleep(1000*seconds); }
++
+ namespace tensorflow {
+ namespace grappler {
+ 
+diff --git a/tensorflow/core/platform/cpu_info.cc b/tensorflow/core/platform/cpu_info.cc
+index e9da3d8..adbd250 100644
+--- a/tensorflow/core/platform/cpu_info.cc
++++ b/tensorflow/core/platform/cpu_info.cc
+@@ -20,6 +20,8 @@ limitations under the License.
+ #if defined(PLATFORM_IS_X86)
+ #include <mutex>  // NOLINT
+ #endif
++#include <intrin.h>
++#include <immintrin.h>
+ 
+ // SIMD extension querying is only available on x86.
+ #ifdef PLATFORM_IS_X86
+diff --git a/tensorflow/core/platform/windows/env_time.cc b/tensorflow/core/platform/windows/env_time.cc
+index 16cc9dc..c4fdcae 100644
+--- a/tensorflow/core/platform/windows/env_time.cc
++++ b/tensorflow/core/platform/windows/env_time.cc
+@@ -44,7 +44,7 @@ class WindowsEnvTime : public EnvTime {
+       // versions of Windows, so we need to check for its existence here.
+       // All std::chrono clocks on Windows proved to return
+       // values that may repeat, which is not good enough for some uses.
+-      constexpr int64_t kUnixEpochStartTicks = 116444736000000000i64;
++      constexpr int64_t kUnixEpochStartTicks = 116444736000000000LL;
+       constexpr int64_t kFtToMicroSec = 10;
+ 
+       // This interface needs to return system time and not
+diff --git a/tensorflow/core/platform/windows/windows_file_system.cc b/tensorflow/core/platform/windows/windows_file_system.cc
+index 9079a5c..d8c0762 100644
+--- a/tensorflow/core/platform/windows/windows_file_system.cc
++++ b/tensorflow/core/platform/windows/windows_file_system.cc
+@@ -486,6 +486,10 @@ Status WindowsFileSystem::RenameFile(const string& src, const string& target) {
+   return result;
+ }
+ 
++Status WindowsFileSystem::CopyFile(const string& src, const string& target) {
++  return FileSystemCopyFile(this, src, this, target);
++}
++
+ Status WindowsFileSystem::GetMatchingPaths(const string& pattern,
+                                            std::vector<string>* results) {
+   // NOTE(mrry): The existing implementation of FileSystem::GetMatchingPaths()
+diff --git a/tensorflow/core/platform/windows/windows_file_system.h b/tensorflow/core/platform/windows/windows_file_system.h
+index 6b04720..e86ec52 100644
+--- a/tensorflow/core/platform/windows/windows_file_system.h
++++ b/tensorflow/core/platform/windows/windows_file_system.h
+@@ -63,6 +63,8 @@ class WindowsFileSystem : public FileSystem {
+ 
+   Status RenameFile(const string& src, const string& target) override;
+ 
++  Status CopyFile(const string& src, const string& target);
++
+   string TranslateName(const string& name) const override { return name; }
+ };
+ 
